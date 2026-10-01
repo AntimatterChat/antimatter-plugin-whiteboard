@@ -52,6 +52,9 @@ type Service struct {
 	// ValidateUpdate, if set, rejects malformed updates and initial contents.
 	ValidateUpdate func(data []byte) error
 
+	// OnDelete, if set, removes what the plugin keeps about a deleted document.
+	OnDelete func(doc *Doc) error
+
 	// Now returns the current time (time.Now if nil).
 	Now func() time.Time
 }
@@ -386,6 +389,12 @@ func (s *Service) handleDelete(w http.ResponseWriter, r *http.Request) {
 	if err = s.Log.Delete(doc.ID); err != nil {
 		s.WriteError(w, err)
 		return
+	}
+	if s.OnDelete != nil {
+		if err = s.OnDelete(doc); err != nil {
+			s.WriteError(w, err)
+			return
+		}
 	}
 
 	s.Hub.DocChanged(EventDocDeleted, doc)

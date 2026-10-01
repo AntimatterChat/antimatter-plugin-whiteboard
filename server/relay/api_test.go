@@ -170,8 +170,15 @@ func TestAPIChannelDocument(t *testing.T) {
 	w, _ = ts.do(t, bob, http.MethodDelete, "/docs/"+docID, nil)
 	assert.Equal(t, http.StatusForbidden, w.Code)
 	ts.access.admins[bob+"/"+channelID] = true
+	var deleted *Doc
+	ts.OnDelete = func(doc *Doc) error {
+		deleted = doc
+		return nil
+	}
 	w, _ = ts.do(t, bob, http.MethodDelete, "/docs/"+docID, nil)
 	require.Equal(t, http.StatusOK, w.Code)
+	require.NotNil(t, deleted)
+	assert.Equal(t, docID, deleted.ID)
 	assert.Equal(t, EventDocDeleted, ts.publisher.Last().Event)
 	assert.Empty(t, ts.kv.Keys(""))
 }
