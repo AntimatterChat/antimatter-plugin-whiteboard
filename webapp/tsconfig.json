@@ -21,6 +21,20 @@
     "experimentalDecorators": true,
     "jsx": "react",
     "baseUrl": ".",
+    "paths": {
+      "@excalidraw/excalidraw/*": [
+        "node_modules/@excalidraw/excalidraw/dist/types/excalidraw/*"
+      ],
+      "@excalidraw/math": [
+        "node_modules/@excalidraw/excalidraw/dist/types/math/index"
+      ],
+      "@excalidraw/math/*": [
+        "node_modules/@excalidraw/excalidraw/dist/types/math/*"
+      ],
+      "@excalidraw/utils/*": [
+        "node_modules/@excalidraw/excalidraw/dist/types/utils/*"
+      ]
+    },
     "types": [
       "jest",
       "node"

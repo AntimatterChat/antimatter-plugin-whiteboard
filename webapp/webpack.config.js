@@ -1,7 +1,19 @@
 // Copyright (c) 2019-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
+var fs = require('fs');
 var path = require('path');
+
+// Excalidraw loads its fonts from window.EXCALIDRAW_ASSET_PATH (src/public_path.ts), or from a CDN.
+// The plugin ships them next to the bundle, so that boards work without access to the internet.
+class CopyExcalidrawFonts {
+    apply(compiler) {
+        compiler.hooks.afterEmit.tap('CopyExcalidrawFonts', (compilation) => {
+            const fonts = path.join(__dirname, 'node_modules/@excalidraw/excalidraw/dist/prod/fonts');
+            fs.cpSync(fonts, path.join(compilation.outputOptions.path, 'fonts'), {recursive: true});
+        });
+    }
+}
 
 module.exports = {
     entry: [
@@ -17,6 +29,12 @@ module.exports = {
     },
     module: {
         rules: [
+            {
+                // Excalidraw's dependencies import modules without their extension
+                test: /\.m?js$/,
+                include: /node_modules/,
+                resolve: {fullySpecified: false},
+            },
             {
                 test: /\.(js|jsx|ts|tsx)$/,
                 exclude: /node_modules/,
@@ -54,7 +72,16 @@ module.exports = {
     },
     output: {
         path: path.join(__dirname, '/dist'),
+
+        // Set at runtime, see src/public_path.ts
         publicPath: '/',
         filename: 'main.js',
+        chunkFilename: '[name].[contenthash:8].js',
+        clean: true,
+    },
+    plugins: [new CopyExcalidrawFonts()],
+    performance: {
+        // Excalidraw is loaded on demand, in its own chunks
+        hints: false,
     },
 };

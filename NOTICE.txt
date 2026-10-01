@@ -12,3 +12,9 @@ configuration) is derived from mattermost-plugin-gitlab
 Mattermost, Inc., licensed under the Apache License, Version 2.0
 (http://www.apache.org/licenses/LICENSE-2.0), as is server/configuration.go. The copied files keep their original copyright
 headers.
+
+The webapp bundles Excalidraw (https://github.com/excalidraw/excalidraw), Copyright (c) 2020
+Excalidraw, licensed under the MIT License, and its fonts (Virgil, Excalifont, Xiaolai, Nunito,
+Lilita One, Comic Shanns, Cascadia Code, Liberation Sans, Assistant), licensed under the SIL Open
+Font License 1.1 or the MIT License, see
+https://github.com/excalidraw/excalidraw/tree/master/packages/excalidraw/fonts.

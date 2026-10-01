@@ -17,6 +17,7 @@
     "check-types": "tsc"
   },
   "dependencies": {
+    "@excalidraw/excalidraw": "0.18.1",
     "@mattermost/client": "11.9.0",
     "core-js": "3.40.0",
     "mattermost-redux": "11.9.0",
