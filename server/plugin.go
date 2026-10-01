@@ -29,6 +29,13 @@ const (
 	accessCacheTTL = 15 * time.Second
 )
 
+var (
+	// A client sends at most one update at a time, batched every 50 ms, and its pointer every
+	// 60 ms: these leave room for a few open boards per user
+	updateRateLimit    = relay.RateLimit{PerSecond: 20, Burst: 60}
+	awarenessRateLimit = relay.RateLimit{PerSecond: 40, Burst: 80}
+)
+
 // Plugin implements the interface expected by the Antimatter server to communicate between the
 // server and plugin processes.
 type Plugin struct {
@@ -63,14 +70,16 @@ func (p *Plugin) OnActivate() error {
 			CompactAfterBytes:   compactAfterBytes,
 			Merge:               sceneMerger{now: time.Now}.merge,
 		}),
-		Hub:               relay.NewHub(p.API),
-		Access:            p.access,
-		Logger:            p.API,
-		DefaultTitle:      "Untitled board",
-		MaxUpdateBytes:    maxUpdateBytes,
-		MaxSnapshotBytes:  maxSnapshotBytes,
-		MaxAwarenessBytes: maxAwarenessBytes,
-		ValidateUpdate:    validateScene,
+		Hub:                relay.NewHub(p.API),
+		Access:             p.access,
+		Logger:             p.API,
+		DefaultTitle:       "Untitled board",
+		MaxUpdateBytes:     maxUpdateBytes,
+		MaxSnapshotBytes:   maxSnapshotBytes,
+		MaxAwarenessBytes:  maxAwarenessBytes,
+		ValidateUpdate:     validateScene,
+		UpdateRateLimit:    updateRateLimit,
+		AwarenessRateLimit: awarenessRateLimit,
 		OnDelete: func(doc *relay.Doc) error {
 			return p.boards.DeleteBoard(doc.ID)
 		},

@@ -32,7 +32,9 @@ append-only log of the scene updates of each board in the plugin KV store, merge
 snapshot every 200 updates or MiB (deleted elements are kept a day, then dropped), and relays the
 updates and the pointers to the members of the board's channel (or to its owner) with websocket
 events. Images are stored beside the board (8 MiB each at most), and a PNG thumbnail is saved when
-the drawing stops, for the cards of shared boards.
+the drawing stops, for the cards of shared boards. Each user can send twenty updates and forty
+pointer moves a second on average (in bursts of 60 and 80), per server; beyond that the relay
+answers 429 and clients send the update again a moment later.
 
 The relay is shared with the notes plugin: `server/relay` and `webapp/src/relay` are copied in both
 repositories and must be kept in sync.
