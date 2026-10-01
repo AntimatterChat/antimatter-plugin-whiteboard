@@ -19,6 +19,7 @@ import {client, events} from '../client';
 import {userColor} from '../colors';
 import type {Doc} from '../relay/client';
 import Icon from '../ui/icon';
+import {useBoardTheme} from '../ui/theme';
 import {cx} from '../ui/web_ui';
 import {setOpenDoc} from '../ui_state';
 
@@ -27,16 +28,6 @@ import Menu, {type MenuItem} from './menu';
 // Excalidraw is large: it's loaded when a board is opened.
 const ExcalidrawCanvas = React.lazy(() => import(/* webpackChunkName: "excalidraw" */ '../excalidraw/canvas'));
 const loadTools = () => import(/* webpackChunkName: "excalidraw" */ '../excalidraw/tools');
-
-// isDark returns whether a theme color is dark.
-function isDark(color: string) {
-    const hex = color.replace('#', '');
-    if (!(/^[0-9a-f]{6}$/i).test(hex)) {
-        return false;
-    }
-    const [r, g, b] = [0, 2, 4].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
-    return ((0.2126 * r) + (0.7152 * g) + (0.0722 * b)) < 0.5;
-}
 
 // mergeDoc returns a state update applying changes to a board.
 function mergeDoc(changes: Partial<Doc>) {
@@ -168,6 +159,7 @@ export default function BoardView({docId}: {docId: string}) {
     const me = useSelector(getCurrentUser);
     const nameSetting = useSelector(getTeammateNameDisplaySetting);
     const theme = useSelector(getTheme);
+    const boardTheme = useBoardTheme(theme.centerChannelBg);
     const user: BoardUser = {
         userId: me.id,
         name: displayUsername(me, nameSetting),
@@ -359,7 +351,7 @@ export default function BoardView({docId}: {docId: string}) {
                                 session={session}
                                 title={doc.title}
                                 editable={editable}
-                                theme={isDark(theme.centerChannelBg) ? 'dark' : 'light'}
+                                theme={boardTheme}
                                 locale={me.locale || 'en'}
                                 onAPI={onAPI}
                             />
