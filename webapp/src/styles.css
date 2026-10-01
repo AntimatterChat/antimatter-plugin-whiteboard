@@ -4,6 +4,8 @@
  * Fusion: the mockup's classes (am-wb-wrap, am-wb-canvas, am-app-row...) are styled by Fusion;
  * these rules add what the mockup doesn't have, with Fusion's tokens, and theme Excalidraw.
  */
+/* Fusion shows the classic right-hand sidebar body as a block: make it give the panel its height */
+:is(.am-app, .am-layer) .sidebar-right__body:has(> .am-wb-root) { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 :is(.am-app, .am-layer) .am-wb-root { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 :is(.am-app, .am-layer) .am-wb-root > .am-app-panel { overflow-y: auto; }
 :is(.am-app, .am-layer) .am-wb-board { flex: 1; background: var(--am-main); }

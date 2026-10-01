@@ -333,7 +333,7 @@ export default function BoardView({docId}: {docId: string}) {
                     ref={fileRef}
                     type='file'
                     accept='.excalidraw,application/json,application/vnd.excalidraw+json'
-                    hidden={true}
+                    style={{display: 'none'}}
                     onChange={(e) => {
                         const file = e.target.files?.[0];
                         e.target.value = '';
