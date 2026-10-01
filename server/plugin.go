@@ -25,6 +25,10 @@ const (
 	compactAfterUpdates = 200
 	compactAfterBytes   = 1024 * 1024
 
+	// Past snapshots kept as versions of a board
+	keepVersions    = 20
+	versionInterval = 10 * time.Minute
+
 	// How long channel memberships are cached for the updates and pointer moves
 	accessCacheTTL = 15 * time.Second
 )
@@ -68,6 +72,8 @@ func (p *Plugin) OnActivate() error {
 		Log: relay.NewLog(p.API, locker, relay.LogOptions{
 			CompactAfterUpdates: compactAfterUpdates,
 			CompactAfterBytes:   compactAfterBytes,
+			KeepVersions:        keepVersions,
+			VersionInterval:     versionInterval,
 			Merge:               sceneMerger{now: time.Now}.merge,
 		}),
 		Hub:                relay.NewHub(p.API),
