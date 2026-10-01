@@ -43,6 +43,25 @@
   --ui-font: var(--am-font-ui);
 }
 
+/*
+ * Excalidraw picks its desktop or mobile interface from the width of the board (mobile below 730px),
+ * but sizes its toolbar with media queries on the width of the window, which is wider than a panel:
+ * the toolbar overflowed narrow boards. Size it to the board instead, as Excalidraw does on phones,
+ * and tighten the desktop interface below 1000px. (Excalidraw's own rules load later, with the
+ * board: these have a higher specificity.)
+ */
+:is(.am-wb-excalidraw, .amw-wb-excalidraw) { container: wb-board / inline-size; }
+@container wb-board (max-width: 1000px) {
+  :is(.am-wb-excalidraw, .amw-wb-excalidraw) .excalidraw:not(.excalidraw--mobile) .App-menu_top { grid-gap: 12px; }
+  :is(.am-wb-excalidraw, .amw-wb-excalidraw) .excalidraw:not(.excalidraw--mobile) .App-toolbar-container .ToolIcon__icon { width: 30px; height: 30px; }
+}
+@container wb-board (max-width: 450px) {
+  :is(.am-wb-excalidraw, .amw-wb-excalidraw) .excalidraw .App-toolbar-container .ToolIcon__icon { width: 28.8px; height: 28.8px; }
+}
+@container wb-board (max-width: 379px) {
+  :is(.am-wb-excalidraw, .amw-wb-excalidraw) .excalidraw .App-toolbar-container .ToolIcon__icon { width: 24px; height: 24px; }
+}
+
 /* Classic UI: the same markup, with the plugin's classes (amw-) and the theme's variables. */
 .amw-wb-root { flex: 1; min-height: 0; display: flex; flex-direction: column; color: var(--center-channel-color); }
 .amw-wb-root button { border: none; background: none; color: inherit; cursor: pointer; }
