@@ -30,6 +30,7 @@ module.exports = {
     module: {
         rules: [
             {
+
                 // Excalidraw's dependencies import modules without their extension
                 test: /\.m?js$/,
                 include: /node_modules/,
@@ -46,6 +47,13 @@ module.exports = {
                         // Babel configuration is in babel.config.js because jest requires it to be there.
                     },
                 },
+            },
+            {
+
+                // Excalidraw's sizes in rem, for a 16px root font size
+                test: /node_modules[\\/]@excalidraw[\\/]excalidraw[\\/]dist[\\/].*\.(css|js)$/,
+                enforce: 'pre',
+                use: path.resolve(__dirname, 'rem_to_px_loader.js'),
             },
             {
                 test: /\.css$/,
@@ -81,6 +89,7 @@ module.exports = {
     },
     plugins: [new CopyExcalidrawFonts()],
     performance: {
+
         // Excalidraw is loaded on demand, in its own chunks
         hints: false,
     },
