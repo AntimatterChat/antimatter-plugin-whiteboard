@@ -44,7 +44,7 @@ export default class FakeRelay implements RelayAPI {
         this.posts++;
         if (this.failNext > 0) {
             this.failNext--;
-            throw new RelayError('failed', this.failStatus || 503);
+            throw new RelayError('failed', this.failStatus || 503, this.failStatus === 429 ? 2000 : 0);
         }
         const seq = ++this.lastSeq;
         this.updates.push({seq, data});

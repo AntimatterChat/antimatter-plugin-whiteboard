@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 	"unicode/utf8"
 
@@ -55,8 +56,17 @@ type Service struct {
 	// OnDelete, if set, removes what the plugin keeps about a deleted document.
 	OnDelete func(doc *Doc) error
 
+	// UpdateRateLimit and AwarenessRateLimit bound the updates and the presence messages each
+	// user sends. Clients retry updates after the time the 429 response gives.
+	UpdateRateLimit    RateLimit
+	AwarenessRateLimit RateLimit
+
 	// Now returns the current time (time.Now if nil).
 	Now func() time.Time
+
+	limitersOnce     sync.Once
+	updateLimiter    *rateLimiter
+	awarenessLimiter *rateLimiter
 }
 
 func (s *Service) now() time.Time {
@@ -439,6 +449,9 @@ func (s *Service) handleSince(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Service) handleAppend(w http.ResponseWriter, r *http.Request) {
+	if updates, _ := s.limiters(); s.rateLimited(w, r, updates, "updates") {
+		return
+	}
 	var body struct {
 		ClientID string `json:"client_id"`
 		Data     []byte `json:"data"`
@@ -534,6 +547,9 @@ func (s *Service) handleSnapshot(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Service) handleAwareness(w http.ResponseWriter, r *http.Request) {
+	if _, awareness := s.limiters(); s.rateLimited(w, r, awareness, "presence messages") {
+		return
+	}
 	var body struct {
 		ClientID string `json:"client_id"`
 		Data     []byte `json:"data"`

@@ -46,10 +46,20 @@ export type AppendResult = {
 export class RelayError extends Error {
     status: number;
 
-    constructor(message: string, status: number) {
+    // retryAfter is how long to wait before trying again, in milliseconds, when the server says
+    // (429 Too Many Requests)
+    retryAfter: number;
+
+    constructor(message: string, status: number, retryAfter = 0) {
         super(message);
         this.status = status;
+        this.retryAfter = retryAfter;
     }
+}
+
+function retryAfterHeader(response: Response): number {
+    const seconds = Number(response.headers.get('Retry-After'));
+    return Number.isFinite(seconds) && seconds > 0 ? seconds * 1000 : 0;
 }
 
 type RawUpdate = {seq: number; data: string};
@@ -84,7 +94,7 @@ export class RelayClient {
             } catch {
                 // Not JSON
             }
-            throw new RelayError(message, response.status);
+            throw new RelayError(message, response.status, retryAfterHeader(response));
         }
         return response.json();
     }

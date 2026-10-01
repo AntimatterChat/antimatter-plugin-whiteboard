@@ -140,6 +140,27 @@ describe('RelayConnection', () => {
         expect(statuses[statuses.length - 1]).toBe('saved');
     });
 
+    test('waits when sending too fast', async () => {
+        const relay = new FakeRelay();
+        const statuses: string[] = [];
+        const a = textClient(relay, 'a', {onStatus: (s) => statuses.push(s)});
+        const b = textClient(relay, 'b');
+        await a.connection.start();
+        await b.connection.start();
+
+        relay.failNext = 1;
+        relay.failStatus = 429;
+        a.connection.send(encoder.encode('1'));
+        await advance(10);
+        a.connection.send(encoder.encode('2'));
+        await advance(1500);
+        expect(b.received).toEqual([]);
+        expect(statuses).not.toContain('offline');
+        await advance(500); // the server said two seconds
+        expect(b.received).toEqual(['1+2']);
+        expect(statuses[statuses.length - 1]).toBe('saved');
+    });
+
     test('drops updates refused for good', async () => {
         const relay = new FakeRelay();
         const onReadOnly = jest.fn();
