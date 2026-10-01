@@ -18,8 +18,9 @@ import (
 )
 
 const (
-	// boardPostType is the type of the posts sharing a board in its channel.
-	boardPostType = "custom_antimatter_whiteboard"
+	// boardPostType is the type of the posts sharing a board in its channel (26 characters at
+	// most, the size of the column).
+	boardPostType = "custom_am_whiteboard"
 
 	maxFileBytes      = 8 * 1024 * 1024
 	maxThumbnailBytes = 1024 * 1024

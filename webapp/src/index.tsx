@@ -20,7 +20,7 @@ import {setShowPanel} from './ui_state';
 import './styles.css';
 
 // The type of the posts sharing a board (server/api.go).
-const BOARD_POST_TYPE = 'custom_antimatter_whiteboard';
+const BOARD_POST_TYPE = 'custom_am_whiteboard';
 
 // The icon of the app bar: the mockup's whiteboard icon, in its color.
 const appBarIcon = 'data:image/svg+xml;utf8,' + encodeURIComponent(
