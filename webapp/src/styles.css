@@ -1,0 +1,85 @@
+/* Copyright (c) 2026-present Antimatter contributors. See LICENSE.txt for license information. */
+
+/*
+ * Fusion: the mockup's classes (am-wb-wrap, am-wb-canvas, am-app-row...) are styled by Fusion;
+ * these rules add what the mockup doesn't have, with Fusion's tokens, and theme Excalidraw.
+ */
+:is(.am-app, .am-layer) .am-wb-root { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+:is(.am-app, .am-layer) .am-wb-root > .am-app-panel { overflow-y: auto; }
+:is(.am-app, .am-layer) .am-wb-board { flex: 1; background: var(--am-main); }
+:is(.am-app, .am-layer) .am-wb-bar { display: flex; align-items: center; gap: 6px; padding: 6px 8px; border-bottom: 1px solid var(--am-line); }
+:is(.am-app, .am-layer) .am-wb-title { flex: 1; min-width: 0; height: 32px; padding: 0 8px; border-radius: 7px; border: 1px solid transparent; background: none; color: var(--am-text); font: 600 15px var(--am-font-display); text-overflow: ellipsis; }
+:is(.am-app, .am-layer) .am-wb-title:hover:not(:read-only) { border-color: var(--am-line); }
+:is(.am-app, .am-layer) .am-wb-title:focus { outline: none; border-color: var(--am-matter); background: var(--am-main); }
+:is(.am-app, .am-layer) .am-wb-status { flex: none; font-size: 12px; color: var(--am-muted); white-space: nowrap; }
+:is(.am-app, .am-layer) .am-ic.am-ic-back { transform: rotate(90deg); }
+:is(.am-app, .am-layer) .am-wb-excalidraw { position: absolute; inset: 0; }
+:is(.am-app, .am-layer) .am-wb-row-ic { color: #FB923C; display: grid; }
+:is(.am-app, .am-layer) .am-wb-row-main { min-width: 0; }
+:is(.am-app, .am-layer) .am-wb-h-btn { width: 26px; height: 26px; color: var(--am-muted); }
+:is(.am-app, .am-layer) .am-wb-h-btn:hover { background: var(--am-hover); color: var(--am-text); }
+:is(.am-app, .am-layer) .am-wb-empty { padding: 10px 12px; color: var(--am-muted); font-size: 13px; }
+:is(.am-app, .am-layer) .am-wb-error { margin: 10px 12px; padding: 8px 10px; border-radius: 8px; background: rgba(242, 63, 67, 0.12); color: var(--am-danger); font-size: 13px; }
+:is(.am-app, .am-layer) .am-wb-notice { margin: 6px 12px; padding: 6px 10px; border-radius: 8px; background: var(--am-side); color: var(--am-text-2); font-size: 12.5px; text-align: left; }
+:is(.am-app, .am-layer) .am-wb-menu-wrap { position: relative; }
+:is(.am-app, .am-layer) .am-wb-menu { position: absolute; right: 0; top: calc(100% + 4px); z-index: 20; width: 240px; display: grid; gap: 1px; padding: 6px; border-radius: 12px; background: var(--am-raise); border: 1px solid var(--am-line); box-shadow: var(--am-shadow); }
+:is(.am-app, .am-layer) .am-wb-menu button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 7px 10px; border-radius: 7px; text-align: left; font-size: 13.5px; color: var(--am-text); }
+:is(.am-app, .am-layer) .am-wb-menu button:hover { background: var(--am-matter); color: #fff; }
+:is(.am-app, .am-layer) .am-wb-menu button.am-danger { color: var(--am-danger); }
+:is(.am-app, .am-layer) .am-wb-menu button.am-danger:hover { background: var(--am-danger); color: #fff; }
+:is(.am-app, .am-layer) .am-wb-card .am-card-author .am-ic { color: #FB923C; }
+:is(.am-app, .am-layer) .am-wb-thumb { display: block; padding: 0; border-radius: 8px; overflow: hidden; border: 1px solid var(--am-line); background: #fff; max-width: 100%; }
+:is(.am-app, .am-layer) .am-wb-thumb img { display: block; max-width: 100%; max-height: 240px; object-fit: contain; }
+:is(.am-app, .am-layer) .am-wb-excalidraw .excalidraw {
+  --color-primary: var(--am-matter);
+  --color-primary-darker: var(--am-matter);
+  --color-primary-darkest: var(--am-matter);
+  --color-primary-hover: var(--am-matter);
+  --color-primary-light: var(--am-matter-soft);
+  --island-bg-color: var(--am-raise);
+  --popup-bg-color: var(--am-raise);
+  --ui-font: var(--am-font-ui);
+}
+
+/* Classic UI: the same markup, with the plugin's classes (amw-) and the theme's variables. */
+.amw-wb-root { flex: 1; min-height: 0; display: flex; flex-direction: column; color: var(--center-channel-color); }
+.amw-wb-root button { border: none; background: none; color: inherit; cursor: pointer; }
+.amw-wb-root .icon { font-size: 18px; }
+.amw-app-panel { padding: 10px 12px 16px; display: grid; gap: 8px; align-content: start; overflow-y: auto; }
+.amw-app-h { display: flex; align-items: center; gap: 8px; margin: 6px 2px 0; font-size: 11px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: rgba(var(--center-channel-color-rgb), 0.64); }
+.amw-grow { flex: 1; min-width: 0; }
+.amw-app-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; width: 100%; padding: 9px 10px; border-radius: 8px; background: rgba(var(--center-channel-color-rgb), 0.04); text-align: left; }
+.amw-app-row:hover { background: rgba(var(--center-channel-color-rgb), 0.08); }
+.amw-app-row b { display: block; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.amw-sub { display: block; font-size: 12px; color: rgba(var(--center-channel-color-rgb), 0.64); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.amw-wb-row-ic { color: #EA580C; display: grid; }
+.amw-wb-row-main { min-width: 0; }
+.amw-icon-btn { width: 32px; height: 32px; border-radius: 4px; display: grid; place-items: center; color: rgba(var(--center-channel-color-rgb), 0.64); }
+.amw-icon-btn:hover { background: rgba(var(--center-channel-color-rgb), 0.08); color: var(--center-channel-color); }
+.amw-wb-h-btn { width: 26px; height: 26px; }
+.amw-wb-empty { padding: 10px 12px; color: rgba(var(--center-channel-color-rgb), 0.64); font-size: 13px; }
+.amw-wb-error { margin: 10px 12px; padding: 8px 10px; border-radius: 4px; background: rgba(var(--error-text-color-rgb), 0.08); color: var(--error-text); font-size: 13px; }
+.amw-wb-notice { margin: 6px 12px; padding: 6px 10px; border-radius: 4px; background: rgba(var(--center-channel-color-rgb), 0.06); font-size: 12.5px; text-align: left; }
+.amw-wb-wrap { position: relative; flex: 1; height: 100%; min-height: 0; display: flex; flex-direction: column; background: var(--center-channel-bg); }
+.amw-wb-bar { display: flex; align-items: center; gap: 6px; padding: 6px 8px; border-bottom: 1px solid rgba(var(--center-channel-color-rgb), 0.12); }
+.amw-wb-title { flex: 1; min-width: 0; height: 32px; padding: 0 8px; border-radius: 4px; border: 1px solid transparent; background: none; color: var(--center-channel-color); font-size: 15px; font-weight: 600; text-overflow: ellipsis; }
+.amw-wb-title:hover:not(:read-only) { border-color: rgba(var(--center-channel-color-rgb), 0.16); }
+.amw-wb-title:focus { outline: none; border-color: var(--button-bg); }
+.amw-wb-status { flex: none; font-size: 12px; color: rgba(var(--center-channel-color-rgb), 0.64); white-space: nowrap; }
+.amw-wb-canvas { flex: 1; min-height: 0; position: relative; }
+.amw-wb-excalidraw { position: absolute; inset: 0; }
+.amw-wb-menu-wrap { position: relative; }
+.amw-wb-menu { position: absolute; right: 0; top: calc(100% + 4px); z-index: 20; width: 240px; display: grid; padding: 6px 0; border-radius: 4px; background: var(--center-channel-bg); border: 1px solid rgba(var(--center-channel-color-rgb), 0.16); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12); }
+.amw-wb-menu button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 6px 16px; text-align: left; font-size: 14px; }
+.amw-wb-menu button:hover { background: rgba(var(--center-channel-color-rgb), 0.08); }
+.amw-wb-menu button.amw-danger { color: var(--error-text); }
+.amw-card { margin-top: 6px; max-width: 440px; display: grid; gap: 6px; padding: 8px 12px 10px; border-radius: 4px; border: 1px solid rgba(var(--center-channel-color-rgb), 0.16); border-left: 4px solid #EA580C; }
+.amw-card-author { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: rgba(var(--center-channel-color-rgb), 0.64); }
+.amw-card-title { padding: 0; border: none; background: none; font-size: 15px; font-weight: 700; color: var(--link-color); text-align: left; }
+.amw-card-title:hover:not(:disabled) { text-decoration: underline; }
+.amw-wb-thumb { display: block; padding: 0; border: 1px solid rgba(var(--center-channel-color-rgb), 0.12); border-radius: 4px; overflow: hidden; background: #fff; max-width: 100%; }
+.amw-wb-thumb img { display: block; max-width: 100%; max-height: 240px; object-fit: contain; }
+.amw-card-foot { font-size: 12px; color: rgba(var(--center-channel-color-rgb), 0.56); }
+.amw-card-actions { display: flex; gap: 6px; }
+.amw-card-actions button { height: 28px; padding: 0 12px; border-radius: 4px; border: none; font-size: 12px; font-weight: 600; }
+.amw-card-actions button.amw-primary { background: var(--button-bg); color: var(--button-color); }
