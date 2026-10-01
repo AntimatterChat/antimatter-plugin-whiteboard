@@ -43,6 +43,17 @@
   --ui-font: var(--am-font-ui);
 }
 
+/* Version history, over the board */
+:is(.am-app, .am-layer) .am-wb-history-layer { position: absolute; inset: 0; z-index: 30; display: flex; flex-direction: column; background: var(--am-main); overflow-y: auto; }
+:is(.am-app, .am-layer) .am-wb-history-title { display: block; line-height: 32px; overflow: hidden; white-space: nowrap; }
+:is(.am-app, .am-layer) .am-wb-history { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+:is(.am-app, .am-layer) .am-wb-versions { display: flex; gap: 6px; flex-wrap: wrap; padding: 10px 12px; border-bottom: 1px solid var(--am-line); }
+:is(.am-app, .am-layer) .am-wb-version { height: 28px; padding: 0 10px; border-radius: 14px; background: var(--am-side); color: var(--am-text-2); font-size: 12.5px; font-weight: 600; }
+:is(.am-app, .am-layer) .am-wb-version.am-on { background: var(--am-matter-soft); color: var(--am-matter); }
+:is(.am-app, .am-layer) .am-wb-preview { flex: 1; min-height: 120px; display: grid; place-items: center; padding: 12px; color: var(--am-muted); font-size: 13px; }
+:is(.am-app, .am-layer) .am-wb-preview img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 8px; border: 1px solid var(--am-line); }
+:is(.am-app, .am-layer) .am-wb-history-actions { padding: 10px 12px; border-top: 1px solid var(--am-line); }
+
 /*
  * Excalidraw picks its desktop or mobile interface from the width of the board (mobile below 730px),
  * but sizes its toolbar with media queries on the width of the window, which is wider than a panel:
@@ -104,3 +115,14 @@
 .amw-card-actions { display: flex; gap: 6px; }
 .amw-card-actions button { height: 28px; padding: 0 12px; border-radius: 4px; border: none; font-size: 12px; font-weight: 600; }
 .amw-card-actions button.amw-primary { background: var(--button-bg); color: var(--button-color); }
+.amw-wb-history-layer { position: absolute; inset: 0; z-index: 30; display: flex; flex-direction: column; background: var(--center-channel-bg); overflow-y: auto; }
+.amw-wb-history-title { display: block; line-height: 32px; overflow: hidden; white-space: nowrap; }
+.amw-wb-history { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.amw-wb-versions { display: flex; gap: 6px; flex-wrap: wrap; padding: 10px 12px; border-bottom: 1px solid rgba(var(--center-channel-color-rgb), 0.12); }
+.amw-wb-root .amw-wb-version { height: 28px; padding: 0 10px; border-radius: 14px; background: rgba(var(--center-channel-color-rgb), 0.06); font-size: 12px; font-weight: 600; }
+.amw-wb-root .amw-wb-version.amw-on { background: rgba(var(--button-bg-rgb), 0.12); color: var(--button-bg); }
+.amw-wb-preview { flex: 1; min-height: 120px; display: grid; place-items: center; padding: 12px; color: rgba(var(--center-channel-color-rgb), 0.64); font-size: 13px; }
+.amw-wb-preview img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 4px; border: 1px solid rgba(var(--center-channel-color-rgb), 0.12); }
+.amw-wb-history-actions { padding: 10px 12px; border-top: 1px solid rgba(var(--center-channel-color-rgb), 0.12); }
+.amw-wb-root .amw-btn { height: 32px; padding: 0 14px; border-radius: 4px; font-size: 13px; font-weight: 600; }
+.amw-wb-root .amw-btn.amw-primary { background: var(--button-bg); color: var(--button-color); }

@@ -86,21 +86,41 @@ export async function downloadSVG(api: ExcalidrawImperativeAPI, title: string) {
     download(`${baseName(title)}.svg`, new Blob([svg.outerHTML], {type: 'image/svg+xml'}));
 }
 
+// replaceContent replaces the content of the board by other elements and their images, for
+// everyone. It's an edit: it can be undone.
+function replaceContent(api: ExcalidrawImperativeAPI, elements: readonly SceneElement[], files: readonly BinaryFileData[]) {
+    if (files.length) {
+        api.addFiles([...files]);
+    }
+    const nonce = () => Math.floor(Math.random() * (2 ** 31));
+    const replacement = replacementScene(
+        api.getSceneElementsIncludingDeleted() as unknown as SceneElement[],
+        elements,
+        nonce,
+    );
+    api.updateScene({elements: replacement as unknown as ExcalidrawElement[], captureUpdate: CaptureUpdateAction.IMMEDIATELY});
+    api.scrollToContent();
+}
+
 // importScene replaces the content of the board by the content of an .excalidraw file.
 export async function importScene(api: ExcalidrawImperativeAPI, file: Blob) {
     const scene = await loadFromBlob(file, null, null);
-    const files = Object.values(scene.files || {}) as BinaryFileData[];
-    if (files.length) {
-        api.addFiles(files);
-    }
-    const nonce = () => Math.floor(Math.random() * (2 ** 31));
-    const elements = replacementScene(
-        api.getSceneElementsIncludingDeleted() as unknown as SceneElement[],
-        scene.elements as unknown as SceneElement[],
-        nonce,
-    );
-    api.updateScene({elements: elements as unknown as ExcalidrawElement[], captureUpdate: CaptureUpdateAction.IMMEDIATELY});
-    api.scrollToContent();
+    replaceContent(api, scene.elements as unknown as SceneElement[], Object.values(scene.files || {}) as BinaryFileData[]);
+}
+
+// restoreVersion replaces the content of the board by a past version of it.
+export function restoreVersion(api: ExcalidrawImperativeAPI, elements: readonly SceneElement[], files: readonly BoardFile[]) {
+    replaceContent(api, elements.filter((e) => !e.isDeleted), files as unknown as BinaryFileData[]);
+}
+
+// versionSVG draws a past version of the board, for its preview.
+export async function versionSVG(elements: readonly SceneElement[], files: readonly BoardFile[], dark: boolean): Promise<string> {
+    const svg = await exportToSvg({
+        elements: getNonDeletedElements(elements as readonly ExcalidrawElement[]),
+        appState: {exportBackground: true, exportWithDarkMode: dark, viewBackgroundColor: '#ffffff'},
+        files: Object.fromEntries(files.map((f) => [f.id, f])) as unknown as BinaryFiles,
+    });
+    return svg.outerHTML;
 }
 
 export type {BoardFile};

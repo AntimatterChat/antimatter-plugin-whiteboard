@@ -18,6 +18,7 @@ const classicIcons = {
     trash: 'trash-can-outline',
     lock: 'lock-outline',
     fullscreen: 'arrow-expand',
+    clock: 'clock-outline',
 } as const;
 
 export type IconName = keyof typeof classicIcons;

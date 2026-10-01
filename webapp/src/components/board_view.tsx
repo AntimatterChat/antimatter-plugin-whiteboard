@@ -23,6 +23,7 @@ import {useBoardTheme} from '../ui/theme';
 import {cx} from '../ui/web_ui';
 import {setOpenDoc} from '../ui_state';
 
+import BoardHistory, {type BoardVersion} from './board_history';
 import Menu, {type MenuItem} from './menu';
 
 // Excalidraw is large: it's loaded when a board is opened.
@@ -170,6 +171,7 @@ export default function BoardView({docId}: {docId: string}) {
     const [doc, setDoc] = useState<Doc | null>(null);
     const [docError, setDocError] = useState('');
     const [deleted, setDeleted] = useState(false);
+    const [view, setView] = useState<'board' | 'history'>('board');
     const [notice, setNotice] = useState('');
     const apiRef = useRef<ExcalidrawImperativeAPI | null>(null);
     const rootRef = useRef<HTMLDivElement>(null);
@@ -202,6 +204,10 @@ export default function BoardView({docId}: {docId: string}) {
             title={intl.formatMessage({id: 'whiteboard.back', defaultMessage: 'All boards'})}
             aria-label={intl.formatMessage({id: 'whiteboard.back', defaultMessage: 'All boards'})}
             onClick={() => {
+                if (view === 'history') {
+                    setView('board');
+                    return;
+                }
                 if (document.fullscreenElement) {
                     document.exitFullscreen();
                 }
@@ -257,6 +263,11 @@ export default function BoardView({docId}: {docId: string}) {
             onClick: withAPI((tools, api) => tools.downloadSVG(api, doc.title)),
         },
     ];
+    items.push({
+        icon: 'clock',
+        label: intl.formatMessage({id: 'whiteboard.menu.history', defaultMessage: 'Version history'}),
+        onClick: () => setView('history'),
+    });
     if (editable) {
         items.push({
             icon: 'upload',
@@ -293,6 +304,14 @@ export default function BoardView({docId}: {docId: string}) {
         });
     }
 
+    const restore = (version: BoardVersion) => {
+        withAPI((tools, api) => {
+            tools.restoreVersion(api, version.elements, version.files);
+            setView('board');
+            setNotice(intl.formatMessage({id: 'whiteboard.restored', defaultMessage: 'Version restored. Undo to go back.'}));
+        })();
+    };
+
     const importFile = (file: File) => {
         // eslint-disable-next-line no-alert
         if (window.confirm(intl.formatMessage({id: 'whiteboard.import.confirm', defaultMessage: 'Replace the content of "{title}" with {file}, for everyone?'}, {title: doc.title, file: file.name}))) {
@@ -307,10 +326,20 @@ export default function BoardView({docId}: {docId: string}) {
         >
             <div className={cx('wb-bar')}>
                 {back}
-                <TitleInput
-                    doc={doc}
-                    editable={editable}
-                />
+                {view === 'history' ? (
+                    <span className={cx('wb-title', 'wb-history-title')}>
+                        <FormattedMessage
+                            id='whiteboard.history.title'
+                            defaultMessage='Versions of {title}'
+                            values={{title: doc.title}}
+                        />
+                    </span>
+                ) : (
+                    <TitleInput
+                        doc={doc}
+                        editable={editable}
+                    />
+                )}
                 <span className={cx('wb-status')}>
                     <StatusText
                         session={session}
@@ -358,6 +387,16 @@ export default function BoardView({docId}: {docId: string}) {
                         </Suspense>
                     )}
                 </div>
+                {view === 'history' && (
+                    <div className={cx('wb-history-layer')}>
+                        <BoardHistory
+                            docId={doc.id}
+                            dark={boardTheme === 'dark'}
+                            canRestore={editable}
+                            onRestore={restore}
+                        />
+                    </div>
+                )}
             </div>
         </div>
     );

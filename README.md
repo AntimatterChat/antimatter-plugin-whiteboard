@@ -17,6 +17,8 @@ several people at once, with everyone's pointer visible.
   the mockup's whiteboard markup and Excalidraw takes Fusion's accent color, surfaces and font.
 - **Live collaboration.** Changes appear for everyone, with the pointers, names and selections of
   the others; changes made offline are sent when the connection is back.
+- **History.** A version of each board is kept every 10 minutes or so while it's drawn on (the last
+  20): preview and restore them from **Version history** (restoring is an edit, it can be undone).
 - **Import and export.** Download a board as `.excalidraw`, PNG or SVG (also from Excalidraw's own
   menu); import an `.excalidraw` file (it replaces the board's content, for everyone).
 - **Share in the channel** posts a card with a thumbnail of the board, which opens it.
