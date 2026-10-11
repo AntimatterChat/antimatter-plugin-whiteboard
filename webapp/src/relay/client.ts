@@ -22,6 +22,9 @@ export type Doc = {
 
     // The post sharing a channel's document in the channel, once posted.
     shared_post_id?: string;
+
+    // Whether it's one of the user's favorites (told for a single document).
+    favorite?: boolean;
 };
 
 export type DocState = {
@@ -120,6 +123,15 @@ export class RelayClient {
 
     renameDoc(docId: string, title: string) {
         return this.request<Doc>('PATCH', `/docs/${docId}`, {title});
+    }
+
+    // listFavorites gives the user's favorite documents, the latest first.
+    listFavorites() {
+        return this.request<Doc[]>('GET', '/favorites');
+    }
+
+    setFavorite(docId: string, favorite: boolean) {
+        return this.request<unknown>(favorite ? 'PUT' : 'DELETE', `/docs/${docId}/favorite`);
     }
 
     // moveDoc makes a personal document a document of a channel (which shares it there).

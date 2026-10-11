@@ -1,7 +1,7 @@
 // Copyright (c) 2026-present Antimatter contributors.
 // See LICENSE.txt for license information.
 
-import React from 'react';
+import React, {useEffect, useState} from 'react';
 import {useIntl} from 'react-intl';
 import {useSelector} from 'react-redux';
 
@@ -9,6 +9,7 @@ import {getChannel} from 'mattermost-redux/selectors/entities/channels';
 
 import type {GlobalState} from '@mattermost/types/store';
 
+import {client} from '../client';
 import type {Doc} from '../relay/client';
 import Icon from '../ui/icon';
 import {cx} from '../ui/web_ui';
@@ -45,5 +46,28 @@ export default function ScopeChip({doc}: {doc: Doc}) {
             />
             {name}
         </span>
+    );
+}
+
+// FavoriteButton stars a board, to find it among the favorites from any channel.
+export function FavoriteButton({doc}: {doc: Doc}) {
+    const intl = useIntl();
+    const [favorite, setFavorite] = useState(Boolean(doc.favorite));
+    useEffect(() => setFavorite(Boolean(doc.favorite)), [doc.id, doc.favorite]);
+    const label = favorite ? intl.formatMessage({id: 'whiteboard.favorite.remove', defaultMessage: 'Remove from favorites'}) : intl.formatMessage({id: 'whiteboard.favorite.add', defaultMessage: 'Add to favorites'});
+    return (
+        <button
+            type='button'
+            className={cx('icon-btn', 'wb-star', favorite && 'on')}
+            title={label}
+            aria-label={label}
+            aria-pressed={favorite}
+            onClick={() => {
+                setFavorite(!favorite);
+                client.setFavorite(doc.id, !favorite).catch(() => setFavorite(favorite));
+            }}
+        >
+            <Icon name='star'/>
+        </button>
     );
 }

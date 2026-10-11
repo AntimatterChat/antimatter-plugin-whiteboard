@@ -17,6 +17,7 @@ const classicIcons = {
     forward: 'share-variant-outline',
     trash: 'trash-can-outline',
     lock: 'lock-outline',
+    star: 'star-outline',
     hash: 'pound',
     users: 'account-multiple-outline',
     fullscreen: 'arrow-expand',
@@ -31,6 +32,9 @@ const classicIcons = {
     eraser: 'eraser',
     undo: 'arrow-u-left-top',
     expand: 'arrow-expand-all',
+    stroke: 'format-line-weight',
+    type: 'format-size',
+    library: 'bookshelf',
 } as const;
 
 export type IconName = keyof typeof classicIcons;

@@ -8,6 +8,9 @@ let openDocId: string | null = null;
 let showPanel: () => void = () => null;
 const listeners = new Set<() => void>();
 
+// The channel the panel was closed in: opened again in another channel, it shows its list, not what was left open.
+let closedIn: string | null = null;
+
 function subscribe(listener: () => void) {
     listeners.add(listener);
     return () => {
@@ -16,6 +19,10 @@ function subscribe(listener: () => void) {
 }
 
 export function setOpenDoc(docId: string | null) {
+    // Opening a document (from its card in a channel) is what the panel shows next, wherever it was closed
+    if (docId) {
+        closedIn = null;
+    }
     if (openDocId !== docId) {
         openDocId = docId;
         listeners.forEach((l) => l());
@@ -27,7 +34,7 @@ export function useOpenDoc() {
 }
 
 // The list shows the channel's boards or the user's own ones, as the todo app does.
-export type ListView = 'channel' | 'mine';
+export type ListView = 'channel' | 'favorites' | 'mine';
 let listView: ListView = 'channel';
 
 export function setListView(view: ListView) {
@@ -39,6 +46,17 @@ export function setListView(view: ListView) {
 
 export function useListView() {
     return useSyncExternalStore(subscribe, () => listView);
+}
+
+export function panelClosed(channelId: string) {
+    closedIn = channelId;
+}
+
+export function panelOpened(channelId: string) {
+    if (closedIn !== null && closedIn !== channelId) {
+        openDocId = null;
+    }
+    closedIn = null;
 }
 
 // setShowPanel sets how to show the whiteboard panel (the right-hand sidebar of the plugin).

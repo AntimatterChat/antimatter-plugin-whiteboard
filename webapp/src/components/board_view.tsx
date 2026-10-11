@@ -25,7 +25,8 @@ import {setOpenDoc} from '../ui_state';
 
 import BoardHistory, {type BoardVersion} from './board_history';
 import Menu, {type MenuItem} from './menu';
-import ScopeChip from './scope';
+import ScopeChip, {FavoriteButton} from './scope';
+import {useSteadyStatus} from './steady_status';
 
 // Excalidraw is large: it's loaded when a board is opened.
 const ExcalidrawCanvas = React.lazy(() => import(/* webpackChunkName: "excalidraw" */ '../excalidraw/canvas'));
@@ -108,6 +109,7 @@ function TitleInput({doc, editable}: {doc: Doc; editable: boolean}) {
 }
 
 function StatusText({session, editable}: {session: BoardSession; editable: boolean}) {
+    const steady = useSteadyStatus(session.status);
     if (!editable) {
         return (
             <FormattedMessage
@@ -116,7 +118,7 @@ function StatusText({session, editable}: {session: BoardSession; editable: boole
             />
         );
     }
-    switch (session.status) {
+    switch (steady) {
     case 'loading':
         return (
             <FormattedMessage
@@ -250,6 +252,11 @@ export default function BoardView({docId}: {docId: string}) {
             onClick: () => rootRef.current?.requestFullscreen?.(),
         },
         {
+            icon: 'expand',
+            label: intl.formatMessage({id: 'whiteboard.menu.fit', defaultMessage: 'Show the whole board'}),
+            onClick: withAPI((_tools, api) => api.scrollToContent(api.getSceneElements(), {fitToContent: true, animate: true})),
+        },
+        {
             icon: 'export',
             label: intl.formatMessage({id: 'whiteboard.menu.download_scene', defaultMessage: 'Download as .excalidraw'}),
             onClick: withAPI((tools, api) => tools.downloadScene(api, doc.title)),
@@ -362,6 +369,7 @@ export default function BoardView({docId}: {docId: string}) {
                         editable={editable}
                     />
                 )}
+                <FavoriteButton doc={doc}/>
                 <ScopeChip doc={doc}/>
                 <span className={cx('wb-status')}>
                     <StatusText

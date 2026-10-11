@@ -21,7 +21,7 @@
 :is(.am-app, .am-layer) .am-wb-row-ic.am-wb-row-personal { background: var(--am-raise-2); color: var(--am-muted); }
 :is(.am-app, .am-layer) .am-wb-row-lock { position: absolute; right: -4px; bottom: -4px; display: grid; place-items: center; width: 16px; height: 16px; border-radius: 50%; background: var(--am-side); color: var(--am-text-2); }
 :is(.am-app, .am-layer) .am-wb-row-lock .am-ic { width: 10px; height: 10px; }
-:is(.am-app, .am-layer) .am-wb-scope { flex: none; display: inline-flex; align-items: center; gap: 4px; max-width: 40%; height: 22px; padding: 0 8px; border-radius: 11px; font: 600 11.5px var(--am-font-ui); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+:is(.am-app, .am-layer) .am-wb-scope { flex: none; display: inline-flex; align-items: center; gap: 4px; max-width: 140px; height: 22px; padding: 0 8px; border-radius: 11px; font: 600 11.5px var(--am-font-ui); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 :is(.am-app, .am-layer) .am-wb-scope .am-ic { flex: none; width: 12px; height: 12px; }
 :is(.am-app, .am-layer) .am-wb-scope-shared { background: color-mix(in srgb, #FB923C 16%, transparent); color: #FB923C; }
 :is(.am-app, .am-layer) .am-wb-scope-personal { background: var(--am-raise-2); color: var(--am-muted); }
@@ -72,7 +72,25 @@
  */
 :is(.am-wb-engine, .amw-wb-engine) { position: absolute; inset: 0; display: flex; flex-direction: column; }
 :is(.am-wb-stage, .amw-wb-stage) { position: relative; flex: 1; min-height: 0; }
-:is(.am-wb-stage, .amw-wb-stage) .excalidraw .layer-ui__wrapper { display: none; }
+:is(.am-wb-stage, .amw-wb-stage) .excalidraw :is(.FixedSideContainer, .layer-ui__wrapper__footer, .disable-zen-mode, .HintViewer, .welcome-screen-center, .App-bottom-bar, .App-top-bar, .mobile-misc-tools-container, .default-sidebar-trigger, .sidebar-triggers) { display: none; }
+
+/* The toolbar's menus: colours, strokes and fills, font and size. */
+:is(.am-app, .am-layer) .am-wb-engine .am-wb-tools { position: relative; overflow: visible; }
+:is(.am-app, .am-layer) .am-wb-pop { position: absolute; top: calc(100% + 4px); left: 8px; right: 8px; z-index: 20; display: grid; gap: 6px; max-width: 320px; padding: 10px 12px 12px; border: 1px solid var(--am-line); border-radius: 12px; background: var(--am-raise); box-shadow: var(--am-shadow); }
+:is(.am-app, .am-layer) .am-wb-pop-h { font: 700 11px var(--am-font-ui); letter-spacing: .06em; text-transform: uppercase; color: var(--am-muted); }
+:is(.am-app, .am-layer) .am-wb-pop-row { display: flex; flex-wrap: wrap; gap: 6px; }
+:is(.am-app, .am-layer) .am-wb-tools .am-wb-pop button.am-swatch { width: 24px; height: 24px; margin: 0; border-radius: 7px; }
+:is(.am-app, .am-layer) .am-wb-tools .am-wb-pop button.am-swatch-none { background: repeating-linear-gradient(135deg, transparent 0 5px, var(--am-line) 5px 7px); border-color: var(--am-line); }
+:is(.am-app, .am-layer) .am-wb-tools .am-wb-pop button.am-wb-choice { width: auto; min-width: 40px; height: 30px; padding: 0 10px; border-radius: 7px; background: var(--am-side); color: var(--am-text-2); font: 600 12.5px var(--am-font-ui); }
+:is(.am-app, .am-layer) .am-wb-tools .am-wb-pop button.am-wb-choice.am-on { background: var(--am-matter-soft); color: var(--am-matter); }
+:is(.am-app, .am-layer) .am-wb-line { display: block; width: 22px; border-top: var(--w) var(--s, solid) currentColor; }
+:is(.am-app, .am-layer) .am-wb-fill { display: block; width: 18px; height: 14px; border: 1.5px solid currentColor; border-radius: 3px; }
+:is(.am-app, .am-layer) .am-wb-fill-hachure { background: repeating-linear-gradient(135deg, currentColor 0 1.5px, transparent 1.5px 5px); }
+:is(.am-app, .am-layer) .am-wb-fill-cross-hatch { background: repeating-linear-gradient(135deg, currentColor 0 1.5px, transparent 1.5px 5px), repeating-linear-gradient(45deg, currentColor 0 1.5px, transparent 1.5px 5px); }
+:is(.am-app, .am-layer) .am-wb-fill-solid { background: currentColor; }
+:is(.am-app, .am-layer) .am-wb-color-dot { display: block; width: 18px; height: 18px; border: 3px solid var(--c); border-radius: 50%; background: var(--f); }
+/* Excalidraw's library, in the Fusion UI's colours. */
+:is(.am-app, .am-layer) .am-wb-stage .excalidraw .sidebar { --sidebar-bg-color: var(--am-raise); --sidebar-border-color: var(--am-line); }
 :is(.am-wb-stage, .amw-wb-stage) .excalidraw, :is(.am-wb-stage, .amw-wb-stage) .excalidraw .excalidraw__canvas-wrapper { background: transparent; }
 :is(.am-app, .am-layer) .am-wb-stage { background-color: var(--am-main); background-image: radial-gradient(var(--am-line) 1px, transparent 1px); background-size: 18px 18px; }
 :is(.am-app, .am-layer) .am-wb-tools .am-grow { flex: 1; }
@@ -147,6 +165,23 @@
 .amw-wb-row-ic { position: relative; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 6px; background: rgba(var(--center-channel-color-rgb), 0.06); color: #EA580C; }
 .amw-wb-row-ic.amw-wb-row-personal { color: rgba(var(--center-channel-color-rgb), 0.56); }
 .amw-wb-row-lock { position: absolute; right: -4px; bottom: -4px; display: grid; place-items: center; width: 16px; height: 16px; border-radius: 50%; background: var(--center-channel-bg); font-size: 10px; }
-.amw-wb-scope { flex: none; display: inline-flex; align-items: center; gap: 4px; max-width: 40%; height: 22px; padding: 0 8px; border-radius: 11px; font-size: 11.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.amw-wb-scope { flex: none; display: inline-flex; align-items: center; gap: 4px; max-width: 140px; height: 22px; padding: 0 8px; border-radius: 11px; font-size: 11.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .amw-wb-scope-shared { background: rgba(var(--button-bg-rgb), 0.08); color: var(--button-bg); }
 .amw-wb-scope-personal { background: rgba(var(--center-channel-color-rgb), 0.06); color: rgba(var(--center-channel-color-rgb), 0.64); }
+
+.amw-wb-tools { position: relative; overflow: visible; }
+.amw-wb-pop { position: absolute; top: calc(100% + 4px); left: 8px; right: 8px; z-index: 20; display: grid; gap: 6px; max-width: 320px; padding: 10px 12px 12px; border: 1px solid rgba(var(--center-channel-color-rgb), 0.16); border-radius: 8px; background: var(--center-channel-bg); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12); }
+.amw-wb-pop-h { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: rgba(var(--center-channel-color-rgb), 0.64); }
+.amw-wb-pop-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.amw-wb-tools .amw-wb-pop button.amw-swatch { width: 24px; height: 24px; margin: 0; }
+.amw-wb-tools .amw-wb-pop button.amw-wb-choice { width: auto; min-width: 40px; padding: 0 10px; background: rgba(var(--center-channel-color-rgb), 0.06); font-size: 12.5px; font-weight: 600; }
+.amw-wb-tools .amw-wb-pop button.amw-wb-choice.amw-on { background: rgba(var(--button-bg-rgb), 0.12); color: var(--button-bg); }
+.amw-wb-line { display: block; width: 22px; border-top: var(--w) var(--s, solid) currentColor; }
+.amw-wb-fill { display: block; width: 18px; height: 14px; border: 1.5px solid currentColor; border-radius: 3px; }
+.amw-wb-fill-solid { background: currentColor; }
+.amw-wb-color-dot { display: block; width: 18px; height: 18px; border: 3px solid var(--c); border-radius: 50%; background: var(--f); }
+
+/* A favorite's star, filled in the Fusion UI's colour. */
+:is(.am-app, .am-layer) .am-wb-star { flex: none; color: var(--am-muted); }
+:is(.am-app, .am-layer) .am-wb-star.am-on { color: #F0B232; }
+:is(.am-app, .am-layer) .am-wb-star.am-on .am-ic { fill: currentColor; }

@@ -156,12 +156,14 @@ func ReadJSON(w http.ResponseWriter, r *http.Request, maxBytes int, v any) error
 func (s *Service) RegisterRoutes(router *mux.Router) {
 	router.HandleFunc("/docs", s.handleList).Methods(http.MethodGet)
 	router.HandleFunc("/docs", s.handleCreate).Methods(http.MethodPost)
+	router.HandleFunc("/favorites", s.handleFavorites).Methods(http.MethodGet)
 
 	doc := router.PathPrefix("/docs/{doc_id:[a-z0-9]{26}}").Subrouter()
 	doc.HandleFunc("", s.handleGet).Methods(http.MethodGet)
 	doc.HandleFunc("", s.handleRename).Methods(http.MethodPatch)
 	doc.HandleFunc("", s.handleDelete).Methods(http.MethodDelete)
 	doc.HandleFunc("/move", s.handleMove).Methods(http.MethodPost)
+	doc.HandleFunc("/favorite", s.handleFavorite).Methods(http.MethodPut, http.MethodDelete)
 	doc.HandleFunc("/state", s.handleState).Methods(http.MethodGet)
 	doc.HandleFunc("/updates", s.handleSince).Methods(http.MethodGet)
 	doc.HandleFunc("/updates", s.handleAppend).Methods(http.MethodPost)
@@ -220,6 +222,9 @@ type DocResponse struct {
 	*Doc
 	CanEdit   bool `json:"can_edit"`
 	CanDelete bool `json:"can_delete"`
+
+	// Favorite tells whether it's one of the user's favorites (for a single document).
+	Favorite bool `json:"favorite,omitempty"`
 }
 
 func (s *Service) docResponse(userID string, doc *Doc, permission Permission) DocResponse {
@@ -340,7 +345,9 @@ func (s *Service) handleGet(w http.ResponseWriter, r *http.Request) {
 		s.WriteError(w, err)
 		return
 	}
-	WriteJSON(w, s.docResponse(UserID(r), doc, permission))
+	response := s.docResponse(UserID(r), doc, permission)
+	response.Favorite = s.isFavorite(UserID(r), doc.ID)
+	WriteJSON(w, response)
 }
 
 func (s *Service) handleRename(w http.ResponseWriter, r *http.Request) {

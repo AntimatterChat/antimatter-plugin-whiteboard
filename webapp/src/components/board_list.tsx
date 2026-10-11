@@ -1,7 +1,7 @@
 // Copyright (c) 2026-present Antimatter contributors.
 // See LICENSE.txt for license information.
 
-import React, {useCallback, useEffect, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import {FormattedMessage, useIntl} from 'react-intl';
 import {useSelector} from 'react-redux';
 
@@ -17,8 +17,10 @@ import {setListView, setOpenDoc, useListView} from '../ui_state';
 
 import {useDisplayName} from './hooks';
 import RelativeTime from './relative_time';
+import ScopeChip from './scope';
 
-function BoardRow({doc}: {doc: Doc}) {
+// showScope tells where it's shared (or that it's personal), in the favorites, which mix them.
+function BoardRow({doc, showScope = false}: {doc: Doc; showScope?: boolean}) {
     const editor = useDisplayName(doc.updated_by || doc.creator_id);
     return (
         <button
@@ -46,12 +48,13 @@ function BoardRow({doc}: {doc: Doc}) {
                     />
                 </span>
             </span>
-            {!doc.can_edit && <span className={cx('sub')}><Icon name='lock'/></span>}
+            {showScope ? <ScopeChip doc={doc}/> : !doc.can_edit && <span className={cx('sub')}><Icon name='lock'/></span>}
         </button>
     );
 }
 
 type SectionProps = {
+    showScope?: boolean;
     title: React.ReactNode;
     docs: Doc[] | null;
     empty: React.ReactNode;
@@ -60,7 +63,7 @@ type SectionProps = {
     createLabel: string;
 };
 
-function Section({title, docs, empty, canCreate, onCreate, createLabel}: SectionProps) {
+function Section({title, docs, empty, canCreate, onCreate, createLabel, showScope = false}: SectionProps) {
     return (
         <>
             <div className={cx('app-h')}>
@@ -83,6 +86,7 @@ function Section({title, docs, empty, canCreate, onCreate, createLabel}: Section
                 <BoardRow
                     key={doc.id}
                     doc={doc}
+                    showScope={showScope}
                 />
             )) : <div className={cx('wb-empty')}>{docs ? empty : '…'}</div>}
         </>
@@ -98,6 +102,7 @@ export default function BoardList({channel}: {channel?: Channel}) {
     const channelId = channel?.id;
     const [channelDocs, setChannelDocs] = useState<Doc[] | null>(null);
     const [personalDocs, setPersonalDocs] = useState<Doc[] | null>(null);
+    const [favoriteDocs, setFavoriteDocs] = useState<Doc[] | null>(null);
     const [error, setError] = useState('');
     const view = useListView();
 
@@ -118,13 +123,28 @@ export default function BoardList({channel}: {channel?: Channel}) {
     }, [loadChannel]);
     useEffect(loadPersonal, [loadPersonal]);
 
+    const favoriteIds = useMemo(() => new Set((favoriteDocs || []).map((f) => f.id)), [favoriteDocs]);
+
+    // The favorites, from any channel, load when shown
+    const loadFavorites = useCallback(() => {
+        client.listFavorites().then(setFavoriteDocs, () => setFavoriteDocs([]));
+    }, []);
+    useEffect(() => {
+        if (view === 'favorites') {
+            loadFavorites();
+        }
+    }, [view, loadFavorites]);
+
     useEffect(() => events.addListListener(({doc}) => {
         if (doc.channel_id && doc.channel_id === channelId) {
             loadChannel();
         } else if (!doc.channel_id && doc.owner_id === me) {
             loadPersonal();
         }
-    }), [channelId, me, loadChannel, loadPersonal]);
+        if (view === 'favorites' && favoriteIds.has(doc.id)) {
+            loadFavorites();
+        }
+    }), [channelId, me, loadChannel, loadPersonal, view, favoriteIds, loadFavorites]);
 
     const create = async (personal: boolean) => {
         setError('');
@@ -139,7 +159,7 @@ export default function BoardList({channel}: {channel?: Channel}) {
     const archived = Boolean(channel?.delete_at);
     const channelName = channel?.type === 'D' || channel?.type === 'G' ? intl.formatMessage({id: 'whiteboard.list.conversation', defaultMessage: 'this conversation'}) : channel?.display_name;
 
-    const shown = channel ? view : 'mine';
+    const shown = channel || view === 'favorites' ? view : 'mine';
     const conversation = channel?.type === 'D' || channel?.type === 'G';
 
     return (
@@ -171,6 +191,18 @@ export default function BoardList({channel}: {channel?: Channel}) {
                     <button
                         type='button'
                         role='tab'
+                        aria-selected={shown === 'favorites'}
+                        className={shown === 'favorites' ? cx('on') : ''}
+                        onClick={() => setListView('favorites')}
+                    >
+                        <FormattedMessage
+                            id='whiteboard.list.view_favorites'
+                            defaultMessage='Favorites'
+                        />
+                    </button>
+                    <button
+                        type='button'
+                        role='tab'
                         aria-selected={shown === 'mine'}
                         className={shown === 'mine' ? cx('on') : ''}
                         onClick={() => setListView('mine')}
@@ -183,7 +215,28 @@ export default function BoardList({channel}: {channel?: Channel}) {
                 </div>
             )}
             {error && <div className={cx('wb-error')}>{error}</div>}
-            {shown === 'channel' && channel ? (
+            {shown === 'favorites' && (
+                <Section
+                    title={
+                        <FormattedMessage
+                            id='whiteboard.list.favorites'
+                            defaultMessage='Favorites'
+                        />
+                    }
+                    docs={favoriteDocs}
+                    empty={
+                        <FormattedMessage
+                            id='whiteboard.list.favorites_empty'
+                            defaultMessage='Star a board to find it here, wherever it is.'
+                        />
+                    }
+                    canCreate={false}
+                    onCreate={() => null}
+                    createLabel=''
+                    showScope={true}
+                />
+            )}
+            {shown === 'channel' && channel && (
                 <Section
                     title={
                         <FormattedMessage
@@ -203,7 +256,8 @@ export default function BoardList({channel}: {channel?: Channel}) {
                     onCreate={() => create(false)}
                     createLabel={intl.formatMessage({id: 'whiteboard.list.new_channel', defaultMessage: 'New board in this channel'})}
                 />
-            ) : (
+            )}
+            {shown === 'mine' && (
                 <Section
                     title={
                         <FormattedMessage

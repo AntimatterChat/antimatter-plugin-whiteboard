@@ -1,7 +1,7 @@
 // Copyright (c) 2026-present Antimatter contributors.
 // See LICENSE.txt for license information.
 
-import {Excalidraw, languages} from '@excalidraw/excalidraw';
+import {Excalidraw, languages, useHandleLibrary} from '@excalidraw/excalidraw';
 import type {ExcalidrawElement} from '@excalidraw/excalidraw/element/types';
 import type {AppState, ExcalidrawImperativeAPI} from '@excalidraw/excalidraw/types';
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
@@ -24,6 +24,55 @@ function excalidrawLanguage(locale: string) {
     return (exact || prefix)?.code || 'en';
 }
 
+const LIBRARY_KEY = 'antimatter-whiteboard-library';
+
+// libraryAdapter keeps the library (the shapes kept to reuse) in the browser's storage.
+const libraryAdapter = {
+    load: () => {
+        try {
+            return {libraryItems: JSON.parse(localStorage.getItem(LIBRARY_KEY) || '[]')};
+        } catch {
+            return {libraryItems: []};
+        }
+    },
+    save: ({libraryItems}: {libraryItems: unknown}) => {
+        try {
+            localStorage.setItem(LIBRARY_KEY, JSON.stringify(libraryItems));
+        } catch {
+            // A full storage loses the library's last change
+        }
+    },
+};
+
+type ToolbarState = React.ComponentProps<typeof BoardToolbar>['appState'];
+
+// The style of what's drawn next, until Excalidraw tells its own.
+const DEFAULT_STYLE: ToolbarState = {
+    tool: 'selection',
+    currentItemStrokeColor: '#1e1e1e',
+    currentItemBackgroundColor: 'transparent',
+    currentItemStrokeWidth: 2,
+    currentItemStrokeStyle: 'solid',
+    currentItemFillStyle: 'solid',
+    currentItemFontFamily: 5,
+    currentItemFontSize: 20,
+};
+
+function toolbarState(appState: AppState): ToolbarState {
+    return {
+        tool: appState.activeTool.type,
+        currentItemStrokeColor: appState.currentItemStrokeColor,
+        currentItemBackgroundColor: appState.currentItemBackgroundColor,
+        currentItemStrokeWidth: appState.currentItemStrokeWidth,
+        currentItemStrokeStyle: appState.currentItemStrokeStyle,
+        currentItemFillStyle: appState.currentItemFillStyle,
+        currentItemFontFamily: appState.currentItemFontFamily,
+        currentItemFontSize: appState.currentItemFontSize,
+    };
+}
+
+const sameState = (a: ToolbarState, b: ToolbarState) => (Object.keys(a) as Array<keyof ToolbarState>).every((key) => a[key] === b[key]);
+
 type Props = {
     session: BoardSession;
     title: string;
@@ -33,7 +82,7 @@ type Props = {
     onAPI: (api: ExcalidrawImperativeAPI | null) => void;
 };
 
-// ExcalidrawCanvas is the Excalidraw (MIT) editor of a board, kept in sync by the session.
+// ExcalidrawCanvas is the Excalidraw (MIT) editor of a board, kept in sync by the session, under the board's toolbar.
 export default function ExcalidrawCanvas({session, title, editable, theme, locale, onAPI}: Props) {
     const [api, setAPI] = useState<ExcalidrawImperativeAPI | null>(null);
 
@@ -41,13 +90,15 @@ export default function ExcalidrawCanvas({session, title, editable, theme, local
     // canvas once it has (its state is no longer loading), or the board it draws would vanish.
     const [loaded, setLoaded] = useState(false);
     const wrap = useRef<HTMLDivElement>(null);
-    const [tool, setTool] = useState('selection');
-    const [color, setColor] = useState('#1e1e1e');
+    const [style, setStyle] = useState<ToolbarState>(DEFAULT_STYLE);
 
     // Excalidraw has no undo in its API: its own button, hidden with the rest of its interface, does it.
     const undo = useCallback(() => {
         (wrap.current?.querySelector('.layer-ui__wrapper [aria-label="Undo"]') as HTMLButtonElement | null)?.click();
     }, []);
+
+    useHandleLibrary({excalidrawAPI: api, adapter: libraryAdapter});
+    const library = useCallback(() => api?.toggleSidebar({name: 'default', tab: 'library'}), [api]);
 
     useEffect(() => {
         if (!api || !loaded) {
@@ -97,11 +148,11 @@ export default function ExcalidrawCanvas({session, title, editable, theme, local
         >
             <BoardToolbar
                 api={api}
-                tool={tool}
-                color={color}
+                appState={style}
                 editable={editable}
                 theme={theme}
                 onUndo={undo}
+                onLibrary={library}
             />
             <div className={cx('wb-stage')}>
                 <Excalidraw
@@ -113,8 +164,8 @@ export default function ExcalidrawCanvas({session, title, editable, theme, local
                     name={title}
                     langCode={excalidrawLanguage(locale)}
                     onChange={(elements, appState, files) => {
-                        setTool(appState.activeTool.type);
-                        setColor(appState.currentItemStrokeColor);
+                        const next = toolbarState(appState);
+                        setStyle((old) => (sameState(old, next) ? old : next));
                         if (!loaded) {
                             if (!appState.isLoading) {
                                 setLoaded(true);
