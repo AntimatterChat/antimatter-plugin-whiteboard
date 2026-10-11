@@ -35,8 +35,12 @@ type Props = {
 export default function ExcalidrawCanvas({session, title, editable, theme, locale, onAPI}: Props) {
     const [api, setAPI] = useState<ExcalidrawImperativeAPI | null>(null);
 
+    // Excalidraw loads its initial data after giving its API, and that replaces the scene: the session takes the
+    // canvas once it has (its state is no longer loading), or the board it draws would vanish.
+    const [loaded, setLoaded] = useState(false);
+
     useEffect(() => {
-        if (!api) {
+        if (!api || !loaded) {
             return () => null;
         }
         const canvas = api as unknown as Canvas;
@@ -46,7 +50,7 @@ export default function ExcalidrawCanvas({session, title, editable, theme, local
             session.detach(canvas);
             onAPI(null);
         };
-    }, [api, session, onAPI]);
+    }, [api, loaded, session, onAPI]);
 
     // The board as the session has it, when the canvas mounts again (e.g. back from full screen)
     const initialData = useMemo(() => ({
@@ -63,7 +67,15 @@ export default function ExcalidrawCanvas({session, title, editable, theme, local
             theme={theme}
             name={title}
             langCode={excalidrawLanguage(locale)}
-            onChange={(elements, appState, files) => session.handleChange(elements as unknown as SceneElement[], files as unknown as Record<string, BoardFile>)}
+            onChange={(elements, appState, files) => {
+                if (!loaded) {
+                    if (!appState.isLoading) {
+                        setLoaded(true);
+                    }
+                    return;
+                }
+                session.handleChange(elements as unknown as SceneElement[], files as unknown as Record<string, BoardFile>);
+            }}
             onPointerUpdate={({pointer, button}) => session.handlePointer(pointer, button, api?.getAppState().selectedElementIds || {})}
             UIOptions={{
                 canvasActions: {

@@ -182,13 +182,21 @@ export default class BoardSession {
         }
         this.synced.record(remote);
         if (!this.canvas || !this.tools) {
-            // Keep the latest version of each element for the canvas
+            // Keep the latest version of each element for the canvas, and in the elements the canvas starts from
             for (const element of remote) {
                 const current = this.remoteBeforeCanvas.get(element.id);
                 if (!current || wins(element, current)) {
                     this.remoteBeforeCanvas.set(element.id, element);
                 }
             }
+            const merged = new Map(this.elements.map((element) => [element.id, element]));
+            for (const element of remote) {
+                const current = merged.get(element.id);
+                if (!current || wins(element, current)) {
+                    merged.set(element.id, element);
+                }
+            }
+            this.elements = [...merged.values()];
             return;
         }
 

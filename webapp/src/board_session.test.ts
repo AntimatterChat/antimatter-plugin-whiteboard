@@ -148,6 +148,8 @@ describe('BoardSession', () => {
         const session = new BoardSession(relay, 'doc', {userId: 'bob', name: 'bob', color: '#00f'});
         relay.connect(session.connection);
         await session.start();
+        // The canvas starts from the board (Excalidraw's initial data): it doesn't show empty, then fill.
+        expect(session.elements.map((e) => `${e.id}:${e.version}`).sort()).toEqual(['a:1', 'b:1']);
         const canvas = new FakeCanvas();
         canvas.onChange = (elements, files) => session.handleChange(elements, files);
         const posts = relay.posts;
