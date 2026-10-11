@@ -80,6 +80,7 @@ func (p *Plugin) OnActivate() error {
 		Access:             p.access,
 		Logger:             p.API,
 		DefaultTitle:       "Untitled board",
+		OnTitled:           p.shareTitled,
 		MaxUpdateBytes:     maxUpdateBytes,
 		MaxSnapshotBytes:   maxSnapshotBytes,
 		MaxAwarenessBytes:  maxAwarenessBytes,

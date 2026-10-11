@@ -56,6 +56,10 @@ type Service struct {
 	// OnDelete, if set, removes what the plugin keeps about a deleted document.
 	OnDelete func(doc *Doc) error
 
+	// OnTitled, if set, is told when a channel's document is renamed, or moved to a channel: the plugin
+	// shares it in the channel. It returns the document as it is then.
+	OnTitled func(userID string, doc *Doc) *Doc
+
 	// UpdateRateLimit and AwarenessRateLimit bound the updates and the presence messages each
 	// user sends. Clients retry updates after the time the 429 response gives.
 	UpdateRateLimit    RateLimit
@@ -157,6 +161,7 @@ func (s *Service) RegisterRoutes(router *mux.Router) {
 	doc.HandleFunc("", s.handleGet).Methods(http.MethodGet)
 	doc.HandleFunc("", s.handleRename).Methods(http.MethodPatch)
 	doc.HandleFunc("", s.handleDelete).Methods(http.MethodDelete)
+	doc.HandleFunc("/move", s.handleMove).Methods(http.MethodPost)
 	doc.HandleFunc("/state", s.handleState).Methods(http.MethodGet)
 	doc.HandleFunc("/updates", s.handleSince).Methods(http.MethodGet)
 	doc.HandleFunc("/updates", s.handleAppend).Methods(http.MethodPost)
@@ -316,6 +321,10 @@ func (s *Service) handleCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !doc.IsPersonal() && s.OnTitled != nil {
+		doc = s.OnTitled(userID, doc)
+	}
+
 	s.Hub.DocChanged(EventDocCreated, doc)
 	WriteJSONStatus(w, http.StatusCreated, s.docResponse(userID, doc, ReadWrite))
 }
@@ -377,8 +386,65 @@ func (s *Service) handleRename(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !doc.IsPersonal() && s.OnTitled != nil {
+		doc = s.OnTitled(userID, doc)
+	}
+
 	s.Hub.DocChanged(EventDocUpdated, doc)
 	WriteJSON(w, s.docResponse(userID, doc, ReadWrite))
+}
+
+// handleMove makes a personal document a document of a channel, for its owner to share it there.
+func (s *Service) handleMove(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		ChannelID string `json:"channel_id"`
+	}
+	if err := ReadJSON(w, r, 4096, &body); err != nil {
+		s.WriteError(w, err)
+		return
+	}
+	if !model.IsValidId(body.ChannelID) {
+		s.WriteError(w, NewError(http.StatusBadRequest, "invalid channel_id"))
+		return
+	}
+
+	doc, err := s.RequestDoc(r, true)
+	if err != nil {
+		s.WriteError(w, err)
+		return
+	}
+	userID := UserID(r)
+	if !doc.IsPersonal() || doc.OwnerID != userID {
+		s.WriteError(w, NewError(http.StatusBadRequest, "only your personal documents can be moved to a channel"))
+		return
+	}
+	permission, err := s.Access.ChannelPermission(userID, body.ChannelID)
+	if err != nil {
+		s.WriteError(w, err)
+		return
+	}
+	if permission != ReadWrite {
+		s.WriteError(w, NewError(http.StatusForbidden, "you can't add documents to this channel"))
+		return
+	}
+
+	moved, err := s.Docs.MoveToChannel(doc, body.ChannelID)
+	if err != nil {
+		s.WriteError(w, err)
+		return
+	}
+	if moved == nil {
+		s.WriteError(w, errNotFound)
+		return
+	}
+	if s.OnTitled != nil {
+		moved = s.OnTitled(userID, moved)
+	}
+
+	// Its owner's list loses it, the channel's gains it
+	s.Hub.DocChanged(EventDocUpdated, doc)
+	s.Hub.DocChanged(EventDocCreated, moved)
+	WriteJSON(w, s.docResponse(userID, moved, ReadWrite))
 }
 
 func (s *Service) handleDelete(w http.ResponseWriter, r *http.Request) {

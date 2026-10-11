@@ -9,7 +9,7 @@ import {useSelector} from 'react-redux';
 import type {GlobalState} from '@mattermost/types/store';
 
 import {Client4} from 'mattermost-redux/client';
-import {getChannel} from 'mattermost-redux/selectors/entities/channels';
+import {getChannel, getCurrentChannel} from 'mattermost-redux/selectors/entities/channels';
 import {getTeammateNameDisplaySetting, getTheme} from 'mattermost-redux/selectors/entities/preferences';
 import {getCurrentUser} from 'mattermost-redux/selectors/entities/users';
 import {displayUsername} from 'mattermost-redux/utils/user_utils';
@@ -25,6 +25,7 @@ import {setOpenDoc} from '../ui_state';
 
 import BoardHistory, {type BoardVersion} from './board_history';
 import Menu, {type MenuItem} from './menu';
+import ScopeChip from './scope';
 
 // Excalidraw is large: it's loaded when a board is opened.
 const ExcalidrawCanvas = React.lazy(() => import(/* webpackChunkName: "excalidraw" */ '../excalidraw/canvas'));
@@ -181,6 +182,7 @@ export default function BoardView({docId}: {docId: string}) {
     }, []);
     const {session, error: sessionError} = useSession(docId, user);
     const channel = useSelector((state: GlobalState) => (doc?.channel_id ? getChannel(state, doc.channel_id) : null));
+    const currentChannel = useSelector(getCurrentChannel);
 
     useEffect(() => {
         client.getDoc(docId).then(setDoc, (err) => setDocError(err.status === 404 ? intl.formatMessage({id: 'whiteboard.not_found', defaultMessage: 'This board was deleted, or you can\'t open it.'}) : err.message));
@@ -275,7 +277,9 @@ export default function BoardView({docId}: {docId: string}) {
             onClick: () => fileRef.current?.click(),
         });
     }
-    if (doc.channel_id && !channel?.delete_at) {
+
+    // A channel's board is shared in the channel once it has a title; one still untitled can be shared by hand.
+    if (doc.channel_id && !doc.shared_post_id && !channel?.delete_at) {
         items.push({
             icon: 'forward',
             label: intl.formatMessage({id: 'whiteboard.menu.share', defaultMessage: 'Share in the channel'}),
@@ -284,6 +288,24 @@ export default function BoardView({docId}: {docId: string}) {
                     await session.saveThumbnail();
                     await client.share(doc.id);
                     setNotice(intl.formatMessage({id: 'whiteboard.shared', defaultMessage: 'Shared in the channel.'}));
+                } catch (err) {
+                    setNotice((err as Error).message);
+                }
+            },
+        });
+    }
+
+    // A personal board that should have been the channel's: it moves there, and is shared.
+    const conversation = currentChannel?.type === 'D' || currentChannel?.type === 'G';
+    if (!doc.channel_id && currentChannel && !currentChannel.delete_at) {
+        items.push({
+            icon: 'forward',
+            label: conversation ? intl.formatMessage({id: 'whiteboard.menu.move_conversation', defaultMessage: 'Share in this conversation'}) : intl.formatMessage({id: 'whiteboard.menu.move', defaultMessage: 'Share in ~{channel}'}, {channel: currentChannel.display_name}),
+            onClick: async () => {
+                try {
+                    await session.saveThumbnail();
+                    setDoc(await client.moveDoc(doc.id, currentChannel.id));
+                    setNotice(intl.formatMessage({id: 'whiteboard.moved', defaultMessage: 'Shared: everyone in the channel can see and draw on it now.'}));
                 } catch (err) {
                     setNotice((err as Error).message);
                 }
@@ -340,6 +362,7 @@ export default function BoardView({docId}: {docId: string}) {
                         editable={editable}
                     />
                 )}
+                <ScopeChip doc={doc}/>
                 <span className={cx('wb-status')}>
                     <StatusText
                         session={session}

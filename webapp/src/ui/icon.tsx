@@ -17,8 +17,20 @@ const classicIcons = {
     forward: 'share-variant-outline',
     trash: 'trash-can-outline',
     lock: 'lock-outline',
+    hash: 'pound',
+    users: 'account-multiple-outline',
     fullscreen: 'arrow-expand',
     clock: 'clock-outline',
+    cursor: 'cursor-default-outline',
+    hand: 'hand-right',
+    rect: 'square-outline',
+    ellipse: 'circle-outline',
+    arrow: 'arrow-right',
+    pen: 'pencil-outline',
+    text: 'format-letter-case',
+    eraser: 'eraser',
+    undo: 'arrow-u-left-top',
+    expand: 'arrow-expand-all',
 } as const;
 
 export type IconName = keyof typeof classicIcons;

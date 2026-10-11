@@ -84,7 +84,8 @@ function reconcile(local: readonly SceneElement[], remote: readonly SceneElement
 
 const tools: CanvasTools = {reconcile, captureNever: 'never', thumbnail: async () => new Blob(['png'])};
 const el = (id: string, version: number, extra: Partial<SceneElement> = {}): SceneElement => ({id, version, versionNonce: version, ...extra});
-const summary = (canvas: FakeCanvas) => canvas.elements.map((e) => `${e.id}:${e.version}`).sort();
+const versions = (elements: readonly SceneElement[]) => elements.map((e) => `${e.id}:${e.version}`).sort();
+const summary = (canvas: FakeCanvas) => versions(canvas.elements);
 const names = (session: BoardSession) => session.others().map((c) => c.username).sort();
 
 async function open(relay: FakeBoardAPI, name: string) {
@@ -148,8 +149,9 @@ describe('BoardSession', () => {
         const session = new BoardSession(relay, 'doc', {userId: 'bob', name: 'bob', color: '#00f'});
         relay.connect(session.connection);
         await session.start();
+
         // The canvas starts from the board (Excalidraw's initial data): it doesn't show empty, then fill.
-        expect(session.elements.map((e) => `${e.id}:${e.version}`).sort()).toEqual(['a:1', 'b:1']);
+        expect(versions(session.elements)).toEqual(['a:1', 'b:1']);
         const canvas = new FakeCanvas();
         canvas.onChange = (elements, files) => session.handleChange(elements, files);
         const posts = relay.posts;

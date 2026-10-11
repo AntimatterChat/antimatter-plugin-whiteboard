@@ -35,6 +35,9 @@ type Doc struct {
 	// UpdateAt and UpdatedBy tell when and by whom the document or its content was last changed.
 	UpdateAt  int64  `json:"update_at"`
 	UpdatedBy string `json:"updated_by,omitempty"`
+
+	// SharedPostID is the post sharing a channel's document in the channel, once posted.
+	SharedPostID string `json:"shared_post_id,omitempty"`
 }
 
 // IsPersonal returns whether the document is a personal document.
@@ -132,6 +135,46 @@ func (s *DocStore) Delete(doc *Doc) error {
 		return errors.Wrap(appErr, "failed to remove an empty index")
 	}
 	return nil
+}
+
+// MoveToChannel makes a personal document a document of a channel: it leaves its owner's index for
+// the channel's. It returns the moved document.
+func (s *DocStore) MoveToChannel(doc *Doc, channelID string) (*Doc, error) {
+	moved := *doc
+	moved.ChannelID = channelID
+	moved.OwnerID = ""
+
+	// The channel's index first: the document is never in neither
+	err := kvUpdateJSON(s.kv, indexKey(&moved), func(ids *[]string) (bool, error) {
+		if slices.Contains(*ids, doc.ID) {
+			return false, nil
+		}
+		if len(*ids) >= MaxDocsPerIndex {
+			return false, ErrTooManyDocs
+		}
+		*ids = append(*ids, doc.ID)
+		return true, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	updated, err := s.Update(doc.ID, func(d *Doc) bool {
+		d.ChannelID = channelID
+		d.OwnerID = ""
+		return true
+	})
+	if err != nil || updated == nil {
+		return updated, err
+	}
+	err = kvUpdateJSON(s.kv, indexKey(doc), func(ids *[]string) (bool, error) {
+		i := slices.Index(*ids, doc.ID)
+		if i < 0 {
+			return false, nil
+		}
+		*ids = slices.Delete(*ids, i, i+1)
+		return true, nil
+	})
+	return updated, err
 }
 
 // ListChannel returns the documents of a channel.

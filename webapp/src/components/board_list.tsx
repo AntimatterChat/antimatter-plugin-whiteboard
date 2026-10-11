@@ -25,7 +25,17 @@ function BoardRow({doc}: {doc: Doc}) {
             className={cx('app-row')}
             onClick={() => setOpenDoc(doc.id)}
         >
-            <span className={cx('wb-row-ic')}><Icon name='draw'/></span>
+            <span className={cx('wb-row-ic', !doc.channel_id && 'wb-row-personal')}>
+                <Icon name='draw'/>
+                {!doc.channel_id && (
+                    <span className={cx('wb-row-lock')}>
+                        <Icon
+                            name='lock'
+                            size='xs'
+                        />
+                    </span>
+                )}
+            </span>
             <span className={cx('wb-row-main')}>
                 <b>{doc.title}</b>
                 <span className={cx('sub')}>

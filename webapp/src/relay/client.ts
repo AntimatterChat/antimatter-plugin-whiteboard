@@ -19,6 +19,9 @@ export type Doc = {
     updated_by?: string;
     can_edit: boolean;
     can_delete: boolean;
+
+    // The post sharing a channel's document in the channel, once posted.
+    shared_post_id?: string;
 };
 
 export type DocState = {
@@ -117,6 +120,11 @@ export class RelayClient {
 
     renameDoc(docId: string, title: string) {
         return this.request<Doc>('PATCH', `/docs/${docId}`, {title});
+    }
+
+    // moveDoc makes a personal document a document of a channel (which shares it there).
+    moveDoc(docId: string, channelId: string) {
+        return this.request<Doc>('POST', `/docs/${docId}/move`, {channel_id: channelId});
     }
 
     deleteDoc(docId: string) {
