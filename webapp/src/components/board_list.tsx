@@ -13,7 +13,7 @@ import {client, events} from '../client';
 import type {Doc} from '../relay/client';
 import Icon from '../ui/icon';
 import {cx} from '../ui/web_ui';
-import {setOpenDoc} from '../ui_state';
+import {setListView, setOpenDoc, useListView} from '../ui_state';
 
 import {useDisplayName} from './hooks';
 import RelativeTime from './relative_time';
@@ -89,6 +89,7 @@ export default function BoardList({channel}: {channel?: Channel}) {
     const [channelDocs, setChannelDocs] = useState<Doc[] | null>(null);
     const [personalDocs, setPersonalDocs] = useState<Doc[] | null>(null);
     const [error, setError] = useState('');
+    const view = useListView();
 
     const loadChannel = useCallback(() => {
         if (!channelId) {
@@ -128,10 +129,51 @@ export default function BoardList({channel}: {channel?: Channel}) {
     const archived = Boolean(channel?.delete_at);
     const channelName = channel?.type === 'D' || channel?.type === 'G' ? intl.formatMessage({id: 'whiteboard.list.conversation', defaultMessage: 'this conversation'}) : channel?.display_name;
 
+    const shown = channel ? view : 'mine';
+    const conversation = channel?.type === 'D' || channel?.type === 'G';
+
     return (
         <div className={cx('app-panel', 'wb-list')}>
-            {error && <div className={cx('wb-error')}>{error}</div>}
             {channel && (
+                <div
+                    className={cx('seg', 'wb-seg')}
+                    role='tablist'
+                >
+                    <button
+                        type='button'
+                        role='tab'
+                        aria-selected={shown === 'channel'}
+                        className={shown === 'channel' ? cx('on') : ''}
+                        onClick={() => setListView('channel')}
+                    >
+                        {conversation ? (
+                            <FormattedMessage
+                                id='whiteboard.list.view_conversation'
+                                defaultMessage='This conversation'
+                            />
+                        ) : (
+                            <FormattedMessage
+                                id='whiteboard.list.view_channel'
+                                defaultMessage='This channel'
+                            />
+                        )}
+                    </button>
+                    <button
+                        type='button'
+                        role='tab'
+                        aria-selected={shown === 'mine'}
+                        className={shown === 'mine' ? cx('on') : ''}
+                        onClick={() => setListView('mine')}
+                    >
+                        <FormattedMessage
+                            id='whiteboard.list.view_mine'
+                            defaultMessage='Mine'
+                        />
+                    </button>
+                </div>
+            )}
+            {error && <div className={cx('wb-error')}>{error}</div>}
+            {shown === 'channel' && channel ? (
                 <Section
                     title={
                         <FormattedMessage
@@ -151,25 +193,26 @@ export default function BoardList({channel}: {channel?: Channel}) {
                     onCreate={() => create(false)}
                     createLabel={intl.formatMessage({id: 'whiteboard.list.new_channel', defaultMessage: 'New board in this channel'})}
                 />
+            ) : (
+                <Section
+                    title={
+                        <FormattedMessage
+                            id='whiteboard.list.personal'
+                            defaultMessage='Personal boards'
+                        />
+                    }
+                    docs={personalDocs}
+                    empty={
+                        <FormattedMessage
+                            id='whiteboard.list.personal_empty'
+                            defaultMessage='Only you can see your personal boards.'
+                        />
+                    }
+                    canCreate={true}
+                    onCreate={() => create(true)}
+                    createLabel={intl.formatMessage({id: 'whiteboard.list.new_personal', defaultMessage: 'New personal board'})}
+                />
             )}
-            <Section
-                title={
-                    <FormattedMessage
-                        id='whiteboard.list.personal'
-                        defaultMessage='Personal boards'
-                    />
-                }
-                docs={personalDocs}
-                empty={
-                    <FormattedMessage
-                        id='whiteboard.list.personal_empty'
-                        defaultMessage='Only you can see your personal boards.'
-                    />
-                }
-                canCreate={true}
-                onCreate={() => create(true)}
-                createLabel={intl.formatMessage({id: 'whiteboard.list.new_personal', defaultMessage: 'New personal board'})}
-            />
         </div>
     );
 }

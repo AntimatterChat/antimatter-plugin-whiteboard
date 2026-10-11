@@ -20,6 +20,9 @@
 :is(.am-app, .am-layer) .am-wb-row-main { min-width: 0; }
 :is(.am-app, .am-layer) .am-wb-h-btn { width: 26px; height: 26px; color: var(--am-muted); }
 :is(.am-app, .am-layer) .am-wb-h-btn:hover { background: var(--am-hover); color: var(--am-text); }
+/* The switch between the channel's items and your own, as the todo app's: across the panel. */
+:is(.am-app, .am-layer) .am-wb-seg { display: flex; margin-bottom: 4px; }
+:is(.am-app, .am-layer) .am-wb-seg button { flex: 1; }
 :is(.am-app, .am-layer) .am-wb-empty { padding: 10px 12px; color: var(--am-muted); font-size: 13px; }
 :is(.am-app, .am-layer) .am-wb-error { margin: 10px 12px; padding: 8px 10px; border-radius: 8px; background: rgba(242, 63, 67, 0.12); color: var(--am-danger); font-size: 13px; }
 :is(.am-app, .am-layer) .am-wb-notice { margin: 6px 12px; padding: 6px 10px; border-radius: 8px; background: var(--am-side); color: var(--am-text-2); font-size: 12.5px; text-align: left; }
@@ -89,6 +92,9 @@
 .amw-icon-btn { width: 32px; height: 32px; border-radius: 4px; display: grid; place-items: center; color: rgba(var(--center-channel-color-rgb), 0.64); }
 .amw-icon-btn:hover { background: rgba(var(--center-channel-color-rgb), 0.08); color: var(--center-channel-color); }
 .amw-wb-h-btn { width: 26px; height: 26px; }
+.amw-seg { display: flex; gap: 2px; margin-bottom: 4px; padding: 3px; border: 1px solid rgba(var(--center-channel-color-rgb), 0.16); border-radius: 8px; }
+.amw-seg button { flex: 1; height: 30px; border-radius: 6px; color: rgba(var(--center-channel-color-rgb), 0.64); font-size: 13.5px; font-weight: 600; }
+.amw-seg button.amw-on { background: rgba(var(--center-channel-color-rgb), 0.08); color: var(--center-channel-color); }
 .amw-wb-empty { padding: 10px 12px; color: rgba(var(--center-channel-color-rgb), 0.64); font-size: 13px; }
 .amw-wb-error { margin: 10px 12px; padding: 8px 10px; border-radius: 4px; background: rgba(var(--error-text-color-rgb), 0.08); color: var(--error-text); font-size: 13px; }
 .amw-wb-notice { margin: 6px 12px; padding: 6px 10px; border-radius: 4px; background: rgba(var(--center-channel-color-rgb), 0.06); font-size: 12.5px; text-align: left; }

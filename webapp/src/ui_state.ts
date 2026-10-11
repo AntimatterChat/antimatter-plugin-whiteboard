@@ -26,6 +26,21 @@ export function useOpenDoc() {
     return useSyncExternalStore(subscribe, () => openDocId);
 }
 
+// The list shows the channel's boards or the user's own ones, as the todo app does.
+export type ListView = 'channel' | 'mine';
+let listView: ListView = 'channel';
+
+export function setListView(view: ListView) {
+    if (listView !== view) {
+        listView = view;
+        listeners.forEach((l) => l());
+    }
+}
+
+export function useListView() {
+    return useSyncExternalStore(subscribe, () => listView);
+}
+
 // setShowPanel sets how to show the whiteboard panel (the right-hand sidebar of the plugin).
 export function setShowPanel(show: () => void) {
     showPanel = show;
