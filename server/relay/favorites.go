@@ -24,6 +24,15 @@ func (s *DocStore) ListFavorites(userID string) ([]string, error) {
 	return ids, nil
 }
 
+// removeFavorites removes documents from a user's favorites.
+func (s *DocStore) removeFavorites(userID string, docIDs []string) error {
+	return kvUpdateJSON(s.kv, favoritesKeyPrefix+userID, func(ids *[]string) (bool, error) {
+		n := len(*ids)
+		*ids = slices.DeleteFunc(*ids, func(id string) bool { return slices.Contains(docIDs, id) })
+		return len(*ids) != n, nil
+	})
+}
+
 // SetFavorite adds a document to a user's favorites, or removes it.
 func (s *DocStore) SetFavorite(userID, docID string, favorite bool) error {
 	return kvUpdateJSON(s.kv, favoritesKeyPrefix+userID, func(ids *[]string) (bool, error) {
@@ -43,7 +52,8 @@ func (s *DocStore) SetFavorite(userID, docID string, favorite bool) error {
 	})
 }
 
-// handleFavorites lists the user's favorite documents they can still open.
+// handleFavorites lists the user's favorite documents they can still open. Deleted documents
+// leave the favorites: they would count towards MaxFavorites, and can't be removed by hand anymore.
 func (s *Service) handleFavorites(w http.ResponseWriter, r *http.Request) {
 	userID := UserID(r)
 	ids, err := s.Docs.ListFavorites(userID)
@@ -52,17 +62,19 @@ func (s *Service) handleFavorites(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	response := make([]DocResponse, 0, len(ids))
+	var deleted []string
 	for _, id := range ids {
-		doc, err := s.Docs.Get(id)
-		if err != nil {
+		var doc *Doc
+		if doc, err = s.Docs.Get(id); err != nil {
 			s.WriteError(w, err)
 			return
 		}
 		if doc == nil {
+			deleted = append(deleted, id)
 			continue
 		}
-		permission, err := s.DocPermission(userID, doc)
-		if err != nil {
+		var permission Permission
+		if permission, err = s.DocPermission(userID, doc); err != nil {
 			s.WriteError(w, err)
 			return
 		}
@@ -70,6 +82,11 @@ func (s *Service) handleFavorites(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		response = append(response, s.docResponse(userID, doc, permission))
+	}
+	if len(deleted) > 0 {
+		if err = s.Docs.removeFavorites(userID, deleted); err != nil && s.Logger != nil {
+			s.Logger.LogError("Failed to remove deleted documents from the favorites", "err", err.Error())
+		}
 	}
 	WriteJSON(w, response)
 }

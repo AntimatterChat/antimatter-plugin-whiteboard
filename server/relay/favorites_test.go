@@ -47,4 +47,14 @@ func TestAPIFavorites(t *testing.T) {
 	require.Equal(t, http.StatusOK, w.Code)
 	w, _ = ts.do(t, alice, http.MethodGet, "/favorites", nil)
 	assert.Equal(t, "[]\n", w.Body.String())
+
+	// Deleted documents leave the favorites
+	ts.access.set(alice, channelID, ReadWrite)
+	w, _ = ts.do(t, alice, http.MethodDelete, "/docs/"+sharedID, nil)
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	w, _ = ts.do(t, alice, http.MethodGet, "/favorites", nil)
+	assert.Equal(t, "[]\n", w.Body.String())
+	ids, err := ts.Docs.ListFavorites(alice)
+	require.NoError(t, err)
+	assert.Empty(t, ids)
 }
