@@ -7,7 +7,7 @@ import {FormattedMessage} from 'react-intl';
 import type {Post} from '@mattermost/types/posts';
 
 import {client} from '../client';
-import type {Doc} from '../relay/client';
+import {isDocId, type Doc} from '../relay/client';
 import Icon from '../ui/icon';
 import {APP_COLOUR_STYLE, cx} from '../ui/web_ui';
 import {openBoard} from '../ui_state';
@@ -29,8 +29,11 @@ function loadDoc(docId: string) {
 
 // BoardPost is the card of a board shared in a channel, with its thumbnail.
 export default function BoardPost({post}: {post: Post}) {
-    const docId = String(post.props?.doc_id || '');
-    const [doc, setDoc] = useState<Doc | null | undefined>();
+    // Anyone can post a card with any props: an ID that isn't a board's never goes in a request path
+    const propId = post.props?.doc_id;
+    const docId = isDocId(propId) ? propId : '';
+    const [loaded, setDoc] = useState<Doc | null | undefined>();
+    const doc = docId ? loaded : null;
     const [thumbnail, setThumbnail] = useState(true);
 
     useEffect(() => {

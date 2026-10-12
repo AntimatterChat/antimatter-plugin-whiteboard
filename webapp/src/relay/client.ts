@@ -27,6 +27,12 @@ export type Doc = {
     favorite?: boolean;
 };
 
+// isDocId returns whether a value is a document ID. IDs from posts are checked before they go in a
+// request path: a crafted one, like "../../api/v4/...", would make the request elsewhere.
+export function isDocId(value: unknown): value is string {
+    return typeof value === 'string' && (/^[a-z0-9]{26}$/).test(value);
+}
+
 export type DocState = {
     snapshot: Uint8Array | null;
     snapshotSeq: number;
