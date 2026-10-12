@@ -77,3 +77,22 @@ func TestDocStoreLimit(t *testing.T) {
 	}
 	assert.ErrorIs(t, store.Create(&Doc{ID: model.NewId(), ChannelID: channelID}), ErrTooManyDocs)
 }
+
+// A document an index still lists after it moved elsewhere (a move that failed halfway, or two
+// racing moves) isn't shown with that index.
+func TestDocStoreListsOnlyItsOwnDocs(t *testing.T) {
+	kv := relaytest.NewKV()
+	store := NewDocStore(kv)
+	userID, channelID := model.NewId(), model.NewId()
+	doc := &Doc{ID: model.NewId(), Title: "Mine", OwnerID: userID, CreatorID: userID}
+	require.NoError(t, store.Create(doc))
+	_, appErr := kv.KVSetWithOptions(channelIndexKeyPrefix+channelID, []byte(`["`+doc.ID+`"]`), model.PluginKVSetOptions{})
+	require.Nil(t, appErr)
+
+	docs, err := store.ListChannel(channelID)
+	require.NoError(t, err)
+	assert.Empty(t, docs)
+	docs, err = store.ListPersonal(userID)
+	require.NoError(t, err)
+	assert.Len(t, docs, 1)
+}

@@ -187,6 +187,7 @@ func (s *DocStore) ListPersonal(userID string) ([]*Doc, error) {
 	return s.list(userIndexKeyPrefix + userID)
 }
 
+// list returns the documents of an index that still belong to it.
 func (s *DocStore) list(key string) ([]*Doc, error) {
 	var ids []string
 	if _, err := kvGetJSON(s.kv, key, &ids); err != nil {
@@ -199,8 +200,9 @@ func (s *DocStore) list(key string) ([]*Doc, error) {
 		if err != nil {
 			return nil, err
 		}
-		// An index may briefly list a document being created or deleted
-		if doc != nil {
+		// An index may briefly list a document being created, deleted or moved, and keeps listing
+		// one whose move failed halfway: listing it would show it to the wrong people
+		if doc != nil && indexKey(doc) == key {
 			docs = append(docs, doc)
 		}
 	}
