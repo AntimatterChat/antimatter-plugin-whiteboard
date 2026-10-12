@@ -228,8 +228,29 @@ type DocResponse struct {
 }
 
 func (s *Service) docResponse(userID string, doc *Doc, permission Permission) DocResponse {
-	canDelete := permission == ReadWrite && (doc.IsPersonal() || doc.CreatorID == userID || s.Access.CanManageChannel(userID, doc.ChannelID))
-	return DocResponse{Doc: doc, CanEdit: permission == ReadWrite, CanDelete: canDelete}
+	return s.listResponse(userID)(doc, permission)
+}
+
+// listResponse returns the function making the DocResponses of a list of documents: it asks whether
+// the user manages a channel once per channel, not once per document.
+func (s *Service) listResponse(userID string) func(doc *Doc, permission Permission) DocResponse {
+	manages := map[string]bool{}
+	return func(doc *Doc, permission Permission) DocResponse {
+		canDelete := false
+		if permission == ReadWrite {
+			if doc.IsPersonal() || doc.CreatorID == userID {
+				canDelete = true
+			} else {
+				manager, known := manages[doc.ChannelID]
+				if !known {
+					manager = s.Access.CanManageChannel(userID, doc.ChannelID)
+					manages[doc.ChannelID] = manager
+				}
+				canDelete = manager
+			}
+		}
+		return DocResponse{Doc: doc, CanEdit: permission == ReadWrite, CanDelete: canDelete}
+	}
 }
 
 func (s *Service) handleList(w http.ResponseWriter, r *http.Request) {
@@ -258,9 +279,10 @@ func (s *Service) handleList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	respond := s.listResponse(userID)
 	response := make([]DocResponse, 0, len(docs))
 	for _, doc := range docs {
-		response = append(response, s.docResponse(userID, doc, permission))
+		response = append(response, respond(doc, permission))
 	}
 	WriteJSON(w, response)
 }

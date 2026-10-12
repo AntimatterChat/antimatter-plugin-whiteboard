@@ -61,6 +61,7 @@ func (s *Service) handleFavorites(w http.ResponseWriter, r *http.Request) {
 		s.WriteError(w, err)
 		return
 	}
+	respond := s.listResponse(userID)
 	response := make([]DocResponse, 0, len(ids))
 	var deleted []string
 	for _, id := range ids {
@@ -81,7 +82,7 @@ func (s *Service) handleFavorites(w http.ResponseWriter, r *http.Request) {
 		if permission == NoAccess {
 			continue
 		}
-		response = append(response, s.docResponse(userID, doc, permission))
+		response = append(response, respond(doc, permission))
 	}
 	if len(deleted) > 0 {
 		if err = s.Docs.removeFavorites(userID, deleted); err != nil && s.Logger != nil {

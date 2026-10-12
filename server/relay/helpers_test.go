@@ -13,6 +13,7 @@ type fakeAccess struct {
 	permissions map[string]Permission // userID/channelID
 	admins      map[string]bool       // userID/channelID
 	calls       int
+	manageCalls int
 }
 
 func newFakeAccess() *fakeAccess {
@@ -35,5 +36,6 @@ func (f *fakeAccess) ChannelPermission(userID, channelID string) (Permission, er
 func (f *fakeAccess) CanManageChannel(userID, channelID string) bool {
 	f.mu.Lock()
 	defer f.mu.Unlock()
+	f.manageCalls++
 	return f.admins[userID+"/"+channelID]
 }

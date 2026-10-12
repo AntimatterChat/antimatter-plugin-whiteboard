@@ -274,3 +274,28 @@ func TestAPIVersions(t *testing.T) {
 	w, _ = ts.do(t, alice, http.MethodGet, "/docs/"+docID+"/versions/2", nil)
 	assert.Equal(t, http.StatusNotFound, w.Code)
 }
+
+func TestAPIListAsksAdminOnce(t *testing.T) {
+	ts := newTestService(LogOptions{})
+	alice, bob := model.NewId(), model.NewId()
+	channelID := model.NewId()
+	ts.access.set(alice, channelID, ReadWrite)
+	ts.access.set(bob, channelID, ReadWrite)
+	ts.access.admins[bob+"/"+channelID] = true
+	for range 3 {
+		w, _ := ts.do(t, alice, http.MethodPost, "/docs", map[string]any{"channel_id": channelID})
+		require.Equal(t, http.StatusCreated, w.Code)
+	}
+
+	// Bob manages the channel: he can delete Alice's documents, asked once for the whole list
+	ts.access.manageCalls = 0
+	w, _ := ts.do(t, bob, http.MethodGet, "/docs?channel_id="+channelID, nil)
+	require.Equal(t, http.StatusOK, w.Code)
+	var list []map[string]any
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &list))
+	require.Len(t, list, 3)
+	for _, doc := range list {
+		assert.Equal(t, true, doc["can_delete"])
+	}
+	assert.Equal(t, 1, ts.access.manageCalls)
+}
