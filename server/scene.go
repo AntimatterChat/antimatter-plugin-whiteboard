@@ -13,7 +13,9 @@ import (
 )
 
 const (
-	// maxElements caps the elements of a board, deleted ones included.
+	// maxElements caps the elements of a scene sent by a client (an update or the initial
+	// content), deleted ones included. The merged snapshot isn't capped: it can hold more than one
+	// scene's elements, and refusing to merge it would stop the compaction of the board for good.
 	maxElements = 50000
 	maxIDLength = 64
 
@@ -44,14 +46,15 @@ type element struct {
 	order int
 }
 
-func parseScene(data []byte) ([]element, error) {
+// parseScene reads the elements of a scene, refusing more than maxCount of them unless it is 0.
+func parseScene(data []byte, maxCount int) ([]element, error) {
 	var s scene
 	decoder := json.NewDecoder(bytes.NewReader(data))
 	if err := decoder.Decode(&s); err != nil {
 		return nil, errors.Wrap(err, "invalid scene")
 	}
-	if len(s.Elements) > maxElements {
-		return nil, errors.Errorf("too many elements (%d at most)", maxElements)
+	if maxCount > 0 && len(s.Elements) > maxCount {
+		return nil, errors.Errorf("too many elements (%d at most)", maxCount)
 	}
 
 	elements := make([]element, 0, len(s.Elements))
@@ -68,9 +71,9 @@ func parseScene(data []byte) ([]element, error) {
 	return elements, nil
 }
 
-// validateScene rejects the updates that aren't scenes.
+// validateScene rejects the updates that aren't scenes, or hold too many elements.
 func validateScene(data []byte) error {
-	_, err := parseScene(data)
+	_, err := parseScene(data, maxElements)
 	return err
 }
 
@@ -92,7 +95,7 @@ func (m sceneMerger) merge(snapshot []byte, updates [][]byte) ([]byte, error) {
 	byID := map[string]*element{}
 	order := 0
 	add := func(data []byte) error {
-		elements, err := parseScene(data)
+		elements, err := parseScene(data, 0)
 		if err != nil {
 			return err
 		}

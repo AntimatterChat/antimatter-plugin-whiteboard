@@ -111,3 +111,19 @@ func TestMergeScenesSkipsInvalidUpdates(t *testing.T) {
 	_, err = m.merge([]byte("garbage"), nil)
 	assert.Error(t, err)
 }
+
+// A board can gather more elements than one scene may hold: its snapshot still merges.
+func TestMergeScenesBeyondTheSceneLimit(t *testing.T) {
+	m := sceneMerger{now: time.Now}
+	elements := make([]string, maxElements)
+	for i := range elements {
+		elements[i] = el(fmt.Sprintf("e%d", i), 1, 1, "", "")
+	}
+	snapshot, err := m.merge(nil, [][]byte{sceneOf(elements...), sceneOf(el("extra", 1, 1, "", ""))})
+	require.NoError(t, err)
+	assert.Error(t, validateScene(snapshot))
+
+	merged, err := m.merge(snapshot, [][]byte{sceneOf(el("more", 1, 1, "", ""))})
+	require.NoError(t, err)
+	assert.Len(t, summary(t, merged), maxElements+2)
+}
