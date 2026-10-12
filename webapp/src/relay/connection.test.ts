@@ -77,6 +77,21 @@ describe('RelayConnection', () => {
         expect(a.connection.pending()).toBe(false);
     });
 
+    test('flushes what was queued while an update was being sent', async () => {
+        const relay = new FakeRelay();
+        const {connection} = textClient(relay, 'a');
+        await connection.start();
+
+        connection.send(encoder.encode('1'));
+        jest.advanceTimersByTime(10);
+        connection.send(encoder.encode('2'));
+        await connection.flush();
+        connection.stop();
+
+        expect(relay.updates.map((u) => decoder.decode(u.data))).toEqual(['1', '2']);
+        expect(connection.pending()).toBe(false);
+    });
+
     test('catches up on missed events', async () => {
         const relay = new FakeRelay();
         const a = textClient(relay, 'a');

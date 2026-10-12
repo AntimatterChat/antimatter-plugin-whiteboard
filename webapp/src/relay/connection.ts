@@ -66,7 +66,9 @@ export default class RelayConnection {
     private queue: Uint8Array[] = [];
     private flushTimer: ReturnType<typeof setTimeout> | null = null;
     private catchUpTimer: ReturnType<typeof setTimeout> | null = null;
-    private sending = false;
+
+    // sending is the update being sent, until the server answers.
+    private sending: Promise<void> | null = null;
     private retryDelay = 0;
     private loaded = false;
     private stopped = false;
@@ -100,7 +102,7 @@ export default class RelayConnection {
 
     // pending returns whether local updates aren't stored yet.
     pending() {
-        return this.queue.length > 0 || this.sending;
+        return this.queue.length > 0 || this.sending !== null;
     }
 
     private setStatus(status: SyncStatus, error?: Error) {
@@ -154,25 +156,39 @@ export default class RelayConnection {
         }
         this.flushTimer = setTimeout(() => {
             this.flushTimer = null;
-            this.flush();
+            this.sendQueue();
         }, delay);
     }
 
-    // flush sends the queued updates now.
+    // flush sends the queued updates now. It first waits for the update being sent, if any, so that
+    // closing a document right after a change doesn't leave the updates queued meanwhile behind.
     async flush() {
-        if (this.sending || !this.queue.length || this.stopped) {
-            return;
+        while (this.sending) {
+            // eslint-disable-next-line no-await-in-loop
+            await this.sending;
         }
+        await this.sendQueue();
+    }
 
+    // sendQueue sends the queued updates, unless an update is being sent: those are sent after it.
+    private sendQueue(): Promise<void> {
+        if (this.sending || !this.queue.length || this.stopped) {
+            return Promise.resolve();
+        }
+        this.sending = this.post().finally(() => {
+            this.sending = null;
+        });
+        return this.sending;
+    }
+
+    private async post() {
         const updates = this.queue;
         this.queue = [];
         const data = updates.length === 1 ? updates[0] : this.handlers.merge(updates);
-        this.sending = true;
         let result: AppendResult | null = null;
         try {
             result = await this.api.postUpdate(this.docId, this.clientId, data);
         } catch (err) {
-            this.sending = false;
             if (err instanceof RelayError && permanentFailures.has(err.status)) {
                 if (err.status === 403) {
                     this.handlers.onReadOnly?.();
@@ -197,7 +213,6 @@ export default class RelayConnection {
             return;
         }
 
-        this.sending = false;
         this.retryDelay = 0;
         if (this.stopped) {
             return;
