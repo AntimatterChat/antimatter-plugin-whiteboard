@@ -1,7 +1,7 @@
 // Copyright (c) 2026-present Antimatter contributors.
 // See LICENSE.txt for license information.
 
-import BoardSession, {type BoardFile, type Canvas, type CanvasTools, type Collaborator} from './board_session';
+import BoardSession, {remoteAvatar, type BoardFile, type Canvas, type CanvasTools, type Collaborator} from './board_session';
 import FakeRelay from './relay/fake_relay';
 import {wins, type SceneElement} from './scene';
 
@@ -195,6 +195,17 @@ describe('BoardSession', () => {
         expect(names(bob.session)).toEqual([]);
     });
 
+    test('only takes hex colors and the server\'s pictures from the others', async () => {
+        const relay = new FakeBoardAPI();
+        const alice = await open(relay, 'alice');
+        const presence = {userId: 'abcdefghijklmnopqrstuvwxyz', name: 'mallory', color: 'url(https://example.com/t.png)', avatarUrl: 'https://example.com/t.png', selected: 'a'};
+        await relay.postAwareness('doc', 'mallory', new TextEncoder().encode(JSON.stringify(presence)));
+        const mallory = [...alice.canvas.collaborators.values()].find((c) => c.username === 'mallory');
+        expect(mallory?.color.background).toMatch(/^#[0-9A-F]{6}$/i);
+        expect(mallory?.avatarUrl).toBe('');
+        expect(mallory?.selectedElementIds).toEqual({});
+    });
+
     test('saves a thumbnail once the drawing stops', async () => {
         const relay = new FakeBoardAPI();
         const alice = await open(relay, 'alice');
@@ -204,5 +215,22 @@ describe('BoardSession', () => {
         jest.advanceTimersByTime(5000);
         await settle();
         expect(relay.thumbnails).toBe(1);
+    });
+});
+
+describe('remoteAvatar', () => {
+    const userId = 'abcdefghijklmnopqrstuvwxyz';
+
+    it('keeps the user\'s own picture on this server', () => {
+        expect(remoteAvatar(userId, `/api/v4/users/${userId}/image?_=1`)).toBe(`/api/v4/users/${userId}/image?_=1`);
+        expect(remoteAvatar(userId, `${window.location.origin}/sub/api/v4/users/${userId}/image`)).not.toBe('');
+    });
+
+    it('drops anything else', () => {
+        expect(remoteAvatar(userId, 'https://example.com/t.png')).toBe('');
+        expect(remoteAvatar(userId, `https://example.com/api/v4/users/${userId}/image`)).toBe('');
+        expect(remoteAvatar(userId, '/api/v4/users/someoneelseeeeeeeeeeeeeeeee/image')).toBe('');
+        expect(remoteAvatar('../../x', '/api/v4/users/../../x/image')).toBe('');
+        expect(remoteAvatar(userId, 42)).toBe('');
     });
 });

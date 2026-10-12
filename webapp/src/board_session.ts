@@ -1,6 +1,7 @@
 // Copyright (c) 2026-present Antimatter contributors.
 // See LICENSE.txt for license information.
 
+import {remoteColor} from './colors';
 import RelayConnection, {type RelayAPI, type SyncStatus} from './relay/connection';
 import {decodeScene, encodeScene, imageFileIds, mergeScenes, SyncedVersions, wins, type SceneElement} from './scene';
 
@@ -80,6 +81,21 @@ const COLLABORATOR_TIMEOUT = 45000;
 // The thumbnail is made after this long without changes, at most this often.
 const THUMBNAIL_IDLE = 5000;
 const THUMBNAIL_INTERVAL = 30000;
+
+// remoteAvatar returns the picture another client says its user has, if it's that user's picture on
+// this server, or '' (Excalidraw then shows initials): it goes in an <img>, which would otherwise load
+// any address for everyone.
+export function remoteAvatar(userId: unknown, url: unknown): string {
+    if (typeof url !== 'string' || typeof userId !== 'string' || !(/^[a-z0-9]{26}$/).test(userId)) {
+        return '';
+    }
+    try {
+        const parsed = new URL(url, window.location.href);
+        return parsed.origin === window.location.origin && parsed.pathname.endsWith(`/api/v4/users/${userId}/image`) ? url : '';
+    } catch {
+        return '';
+    }
+}
 
 // BoardSession is an open board, kept in sync with the relay: the elements of its Excalidraw
 // canvas, its images, and the pointers and selections of the people who have it open.
@@ -323,16 +339,16 @@ export default class BoardSession {
                 // Show ourselves to whoever just opened the board
                 setTimeout(() => this.sendPresence(), POINTER_INTERVAL * 5);
             }
-            const color = String(presence.color || '#888');
+            const color = remoteColor(presence.color);
             this.collaborators.set(clientId, {
                 id: String(presence.userId),
                 socketId: clientId,
                 username: String(presence.name || ''),
-                avatarUrl: presence.avatarUrl,
+                avatarUrl: remoteAvatar(presence.userId, presence.avatarUrl),
                 color: {background: color, stroke: color},
                 pointer: presence.pointer,
                 button: presence.button,
-                selectedElementIds: Object.fromEntries((presence.selected || []).map((id) => [id, true as const])),
+                selectedElementIds: Object.fromEntries((Array.isArray(presence.selected) ? presence.selected : []).map((id) => [String(id), true as const])),
                 seen: Date.now(),
             });
         }

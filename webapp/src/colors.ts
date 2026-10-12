@@ -12,3 +12,9 @@ export function userColor(userId: string): string {
     }
     return palette[Math.abs(hash) % palette.length];
 }
+
+// remoteColor returns the color another client says it has, if it's a plain hex color. The value goes
+// in a CSS custom property: anything else (e.g. url(...)) could make every viewer load something.
+export function remoteColor(color: unknown): string {
+    return typeof color === 'string' && (/^#[0-9a-f]{3,8}$/i).test(color) ? color : palette[0];
+}
