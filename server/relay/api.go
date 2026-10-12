@@ -301,8 +301,8 @@ func (s *Service) handleCreate(w http.ResponseWriter, r *http.Request) {
 			s.WriteError(w, NewError(http.StatusBadRequest, "invalid channel_id"))
 			return
 		}
-		permission, err := s.Access.ChannelPermission(userID, body.ChannelID)
-		if err != nil {
+		var permission Permission
+		if permission, err = s.Access.ChannelPermission(userID, body.ChannelID); err != nil {
 			s.WriteError(w, err)
 			return
 		}

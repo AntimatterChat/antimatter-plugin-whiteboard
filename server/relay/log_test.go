@@ -36,8 +36,8 @@ func TestLogAppendAndLoad(t *testing.T) {
 	assert.EqualValues(t, 0, state.LastSeq)
 
 	for i := 1; i <= 3; i++ {
-		result, err := log.Append(testDocID, fmt.Appendf(nil, "u%d", i))
-		require.NoError(t, err)
+		result, appendErr := log.Append(testDocID, fmt.Appendf(nil, "u%d", i))
+		require.NoError(t, appendErr)
 		assert.EqualValues(t, i, result.Seq)
 		assert.False(t, result.Compact)
 	}
