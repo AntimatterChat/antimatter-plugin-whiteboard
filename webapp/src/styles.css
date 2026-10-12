@@ -16,15 +16,16 @@
 :is(.am-app, .am-layer) .am-wb-status { flex: none; font-size: 12px; color: var(--am-muted); white-space: nowrap; }
 :is(.am-app, .am-layer) .am-ic.am-ic-back { transform: rotate(90deg); }
 :is(.am-app, .am-layer) .am-wb-excalidraw { position: absolute; inset: 0; }
-/* Shared or personal at a glance: the app's colour for the channel's, muted with a lock for your own. */
+/* Shared or personal at a glance, both in the app's colour: a filled tile for the channel's, an outlined one with a
+   lock for your own (muted would read as disabled). */
 :is(.am-app, .am-layer) .am-wb-row-ic { position: relative; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 8px; background: color-mix(in srgb, #FB923C 16%, transparent); color: #FB923C; }
-:is(.am-app, .am-layer) .am-wb-row-ic.am-wb-row-personal { background: var(--am-raise-2); color: var(--am-muted); }
-:is(.am-app, .am-layer) .am-wb-row-lock { position: absolute; right: -4px; bottom: -4px; display: grid; place-items: center; width: 16px; height: 16px; border-radius: 50%; background: var(--am-side); color: var(--am-text-2); }
+:is(.am-app, .am-layer) .am-wb-row-ic.am-wb-row-personal { background: transparent; box-shadow: inset 0 0 0 1.5px color-mix(in srgb, #FB923C 70%, transparent); color: #FB923C; }
+:is(.am-app, .am-layer) .am-wb-row-lock { position: absolute; right: -4px; bottom: -4px; display: grid; place-items: center; width: 16px; height: 16px; border-radius: 50%; background: var(--am-side); color: #FB923C; }
 :is(.am-app, .am-layer) .am-wb-row-lock .am-ic { width: 10px; height: 10px; }
 :is(.am-app, .am-layer) .am-wb-scope { flex: none; display: inline-flex; align-items: center; gap: 4px; max-width: 140px; height: 22px; padding: 0 8px; border-radius: 11px; font: 600 11.5px var(--am-font-ui); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 :is(.am-app, .am-layer) .am-wb-scope .am-ic { flex: none; width: 12px; height: 12px; }
 :is(.am-app, .am-layer) .am-wb-scope-shared { background: color-mix(in srgb, #FB923C 16%, transparent); color: #FB923C; }
-:is(.am-app, .am-layer) .am-wb-scope-personal { background: var(--am-raise-2); color: var(--am-muted); }
+:is(.am-app, .am-layer) .am-wb-scope-personal { background: transparent; box-shadow: inset 0 0 0 1px color-mix(in srgb, #FB923C 70%, transparent); color: #FB923C; }
 :is(.am-app, .am-layer) .am-wb-row-main { min-width: 0; }
 :is(.am-app, .am-layer) .am-wb-h-btn { width: 26px; height: 26px; color: var(--am-muted); }
 :is(.am-app, .am-layer) .am-wb-h-btn:hover { background: var(--am-hover); color: var(--am-text); }
@@ -163,11 +164,11 @@
 .amw-wb-stage { background-color: var(--center-channel-bg); background-image: radial-gradient(rgba(var(--center-channel-color-rgb), 0.16) 1px, transparent 1px); background-size: 18px 18px; }
 
 .amw-wb-row-ic { position: relative; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 6px; background: rgba(var(--center-channel-color-rgb), 0.06); color: #EA580C; }
-.amw-wb-row-ic.amw-wb-row-personal { color: rgba(var(--center-channel-color-rgb), 0.56); }
+.amw-wb-row-ic.amw-wb-row-personal { background: transparent; box-shadow: inset 0 0 0 1.5px #EA580C; color: #EA580C; }
 .amw-wb-row-lock { position: absolute; right: -4px; bottom: -4px; display: grid; place-items: center; width: 16px; height: 16px; border-radius: 50%; background: var(--center-channel-bg); font-size: 10px; }
 .amw-wb-scope { flex: none; display: inline-flex; align-items: center; gap: 4px; max-width: 140px; height: 22px; padding: 0 8px; border-radius: 11px; font-size: 11.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .amw-wb-scope-shared { background: rgba(var(--button-bg-rgb), 0.08); color: var(--button-bg); }
-.amw-wb-scope-personal { background: rgba(var(--center-channel-color-rgb), 0.06); color: rgba(var(--center-channel-color-rgb), 0.64); }
+.amw-wb-scope-personal { background: transparent; box-shadow: inset 0 0 0 1px #EA580C; color: #EA580C; }
 
 .amw-wb-tools { position: relative; overflow: visible; }
 .amw-wb-pop { position: absolute; top: calc(100% + 4px); left: 8px; right: 8px; z-index: 20; display: grid; gap: 6px; max-width: 320px; padding: 10px 12px 12px; border: 1px solid rgba(var(--center-channel-color-rgb), 0.16); border-radius: 8px; background: var(--center-channel-bg); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12); }
