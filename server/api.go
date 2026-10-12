@@ -38,6 +38,7 @@ func (p *Plugin) newRouter() *mux.Router {
 
 	api := router.PathPrefix("/api/v1").Subrouter()
 	p.service.RegisterRoutes(api)
+	p.registerLibraryRoutes(api)
 
 	board := api.PathPrefix("/docs/{doc_id:[a-z0-9]{26}}").Subrouter()
 	board.HandleFunc("/share", p.handleShare).Methods(http.MethodPost)

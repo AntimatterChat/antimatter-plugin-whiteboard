@@ -56,6 +56,10 @@ type Plugin struct {
 	service *relay.Service
 	boards  *boardStore
 	router  *mux.Router
+
+	// The libraries of shapes added by the admins
+	libraries  *libraryStore
+	libraryAPI libraryAPI
 }
 
 // OnActivate is invoked when the plugin is activated.
@@ -66,6 +70,8 @@ func (p *Plugin) OnActivate() error {
 	}
 
 	p.boards = &boardStore{kv: p.API}
+	p.libraries = &libraryStore{kv: p.API}
+	p.libraryAPI = p.API
 	p.access = relay.NewCachedAccess(channelAccess{api: p.API}, accessCacheTTL)
 	p.service = &relay.Service{
 		Docs: relay.NewDocStore(p.API),
