@@ -58,7 +58,8 @@ func (s *boardStore) GetFile(boardID, fileID string) (*BoardFile, error) {
 	return &file, nil
 }
 
-// AddFile adds an image to a board. Images never change: adding an existing one does nothing.
+// AddFile adds an image to a board. Images never change (their ID is a hash of their content, and
+// they are served as immutable): adding an existing one keeps the stored image.
 func (s *boardStore) AddFile(boardID string, file *BoardFile) error {
 	if err := s.updateIndex(boardID, func(ids []string) ([]string, error) {
 		if slices.Contains(ids, file.ID) {
@@ -76,7 +77,9 @@ func (s *boardStore) AddFile(boardID string, file *BoardFile) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to encode the file")
 	}
-	if _, appErr := s.kv.KVSetWithOptions(fileKey(boardID, file.ID), data, model.PluginKVSetOptions{}); appErr != nil {
+	// Only if it isn't stored yet: an upload whose index update succeeded but whose file write
+	// failed is saved when sent again
+	if _, appErr := s.kv.KVSetWithOptions(fileKey(boardID, file.ID), data, model.PluginKVSetOptions{Atomic: true}); appErr != nil {
 		return errors.Wrap(appErr, "failed to save the file")
 	}
 	return nil

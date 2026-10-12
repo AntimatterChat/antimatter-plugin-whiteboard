@@ -168,6 +168,9 @@ func TestFilesAndThumbnail(t *testing.T) {
 	image := map[string]any{"mimeType": "image/png", "dataURL": "data:image/png;base64,iVBORw0KGgo=", "created": 1}
 	w = serveJSON(p, alice, http.MethodPut, base+"/files/f1", image)
 	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	// An image never changes
+	w = serveJSON(p, alice, http.MethodPut, base+"/files/f1", map[string]any{"mimeType": "image/png", "dataURL": "data:image/png;base64,AAAA", "created": 2})
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
 	w = serveJSON(p, alice, http.MethodPut, base+"/files/f2", map[string]any{"mimeType": "text/html", "dataURL": "data:text/html;base64,PGI+"})
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	w = serveJSON(p, alice, http.MethodPut, base+"/files/bad%20id", image)
