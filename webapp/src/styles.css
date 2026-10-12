@@ -208,7 +208,11 @@
 .amw-wb-admin .amw-wb-empty { padding: 4px 2px; }
 .amw-wb-admin .amw-wb-error, .amw-wb-admin .amw-wb-notice { margin: 0 0 4px; }
 :is(.am-wb-stage, .amw-wb-stage) .excalidraw .wb-library-note { flex: 1; padding: 6px 4px; color: var(--color-gray-60, #7a7a7a); font-size: 12.5px; text-align: center; }
-:is(.am-wb-stage, .amw-wb-stage) .excalidraw button.wb-library-manage { border: none; cursor: pointer; font: inherit; font-weight: 600; }
+/* The app's theme defines --button-color (the text of its primary buttons, white) on the page, and Excalidraw colours
+   its own buttons with var(--button-color, ...): the library's tabs, close and menu buttons came out white on white.
+   Inside Excalidraw the variable is unset, so its buttons fall back to its own colours. */
+:is(.am-wb-stage, .amw-wb-stage) .excalidraw { --button-color: initial; }
+:is(.am-wb-stage, .amw-wb-stage) .excalidraw button.wb-library-manage { border: none; cursor: pointer; font: inherit; font-weight: 600; color: #fff; }
 /* Excalidraw's dialogs are outside the board, in their own .excalidraw container */
 .excalidraw .HelpDialog .HelpDialog__header { display: none; }
 

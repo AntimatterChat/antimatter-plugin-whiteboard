@@ -259,7 +259,7 @@ export default function LibraryManager({where, admin = false}: Props) {
                                             />
                                         ) : (
                                             <Icon
-                                                name='upload'
+                                                name='plus'
                                                 size='sm'
                                             />
                                         )}
