@@ -83,9 +83,10 @@ export default function ExcalidrawCanvas({session, title, editable, theme, local
     const wrap = useRef<HTMLDivElement>(null);
     const [style, setStyle] = useState<ToolbarState>(DEFAULT_STYLE);
 
-    // Excalidraw has no undo in its API: its own button, hidden with the rest of its interface, does it.
+    // Excalidraw has no undo in its API: its own button, hidden with the rest of its interface, does it. It's found by
+    // its test ID: its label is translated.
     const undo = useCallback(() => {
-        (wrap.current?.querySelector('.layer-ui__wrapper [aria-label="Undo"]') as HTMLButtonElement | null)?.click();
+        (wrap.current?.querySelector('.layer-ui__wrapper [data-testid="button-undo"]') as HTMLButtonElement | null)?.click();
     }, []);
 
     // The library: the user's own items, kept in the browser, and the items of the community's libraries. Both are
