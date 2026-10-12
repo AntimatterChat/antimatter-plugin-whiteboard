@@ -34,7 +34,7 @@ const classicIcons = {
     expand: 'arrow-expand-all',
     stroke: 'format-line-weight',
     type: 'format-size',
-    library: 'bookshelf',
+    library: 'book-outline',
 } as const;
 
 export type IconName = keyof typeof classicIcons;

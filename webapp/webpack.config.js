@@ -15,6 +15,28 @@ class CopyExcalidrawFonts {
     }
 }
 
+// The hosts the boards must never reach (Excalidraw's services, CDNs, the embeds of other sites): the build fails if
+// the bundle still names one. See excalidraw_offline_loader.js.
+const FORBIDDEN_HOSTS = /https?:\/\/(?:[a-z0-9-]+\.)*(?:excalidraw\.com|excalidraw-room-persistence[a-z0-9.-]*|cloudfunctions\.net|firebaseio\.com|esm\.sh|unpkg\.com|jsdelivr\.net|cdnjs\.cloudflare\.com|googleapis\.com|gstatic\.com|discord\.gg|x\.com|twitter\.com|youtube\.com|vimeo\.com|figma\.com|giphy\.com|reddit\.com|mermaid\.js\.org)\b[^"'`\s)]*/g;
+
+class CheckOffline {
+    apply(compiler) {
+        compiler.hooks.thisCompilation.tap('CheckOffline', (compilation) => {
+            compilation.hooks.processAssets.tap({name: 'CheckOffline', stage: compiler.webpack.Compilation.PROCESS_ASSETS_STAGE_ANALYSE}, (assets) => {
+                for (const [name, asset] of Object.entries(assets)) {
+                    if (!name.endsWith('.js')) {
+                        continue;
+                    }
+                    const found = asset.source().toString().match(FORBIDDEN_HOSTS);
+                    if (found) {
+                        compilation.errors.push(new compiler.webpack.WebpackError(`${name} reaches third parties: ${[...new Set(found)].join(', ')}`));
+                    }
+                }
+            });
+        });
+    }
+}
+
 module.exports = {
     entry: [
         './src/index.tsx',
@@ -56,6 +78,13 @@ module.exports = {
                 use: path.resolve(__dirname, 'rem_to_px_loader.js'),
             },
             {
+
+                // Nothing leaves the server: see the loader
+                test: /node_modules[\\/]@excalidraw[\\/]excalidraw[\\/]dist[\\/].*\.js$/,
+                enforce: 'pre',
+                use: path.resolve(__dirname, 'excalidraw_offline_loader.js'),
+            },
+            {
                 test: /\.css$/,
                 use: [
                     {
@@ -87,7 +116,7 @@ module.exports = {
         chunkFilename: '[name].[contenthash:8].js',
         clean: true,
     },
-    plugins: [new CopyExcalidrawFonts()],
+    plugins: [new CopyExcalidrawFonts(), new CheckOffline()],
     performance: {
 
         // Excalidraw is loaded on demand, in its own chunks

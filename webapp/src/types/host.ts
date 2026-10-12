@@ -32,6 +32,7 @@ export interface PluginRegistry {
     registerRightHandSidebarComponent(component: React.ComponentType, title: React.ReactNode): RightHandSidebarRegistration;
     registerChannelHeaderButtonAction(icon: React.ReactNode, action: (channel: Channel) => void, dropdownText: React.ReactNode, tooltipText: React.ReactNode): string;
     registerPostTypeComponent(type: string, component: React.ComponentType<{post: Post}>): string;
+    registerAdminConsoleCustomSetting?(key: string, component: React.ComponentType, options?: {showTitle: boolean}): void;
     registerAppBarComponent?(options: {
         iconUrl: string;
         tooltipText: React.ReactNode;

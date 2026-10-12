@@ -1,18 +1,20 @@
 // Copyright (c) 2026-present Antimatter contributors.
 // See LICENSE.txt for license information.
 
-import {Excalidraw, languages, useHandleLibrary} from '@excalidraw/excalidraw';
+import {Excalidraw, languages} from '@excalidraw/excalidraw';
 import type {ExcalidrawElement} from '@excalidraw/excalidraw/element/types';
-import type {AppState, ExcalidrawImperativeAPI} from '@excalidraw/excalidraw/types';
+import type {AppState, ExcalidrawImperativeAPI, LibraryItems} from '@excalidraw/excalidraw/types';
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 
 // eslint-disable-next-line import/no-unresolved
 import '@excalidraw/excalidraw/index.css';
 
 import type {default as BoardSession, BoardFile, Canvas} from '../board_session';
+import {loadPersonalItems, savePersonalItems, withSharedItems, type LibraryItem} from '../libraries';
 import type {SceneElement} from '../scene';
 import {cx} from '../ui/web_ui';
 
+import {installLibraryNote, LibraryNoteContext, type LibraryNoteState} from './library_note';
 import BoardToolbar from './toolbar';
 import {canvasTools} from './tools';
 
@@ -24,25 +26,7 @@ function excalidrawLanguage(locale: string) {
     return (exact || prefix)?.code || 'en';
 }
 
-const LIBRARY_KEY = 'antimatter-whiteboard-library';
-
-// libraryAdapter keeps the library (the shapes kept to reuse) in the browser's storage.
-const libraryAdapter = {
-    load: () => {
-        try {
-            return {libraryItems: JSON.parse(localStorage.getItem(LIBRARY_KEY) || '[]')};
-        } catch {
-            return {libraryItems: []};
-        }
-    },
-    save: ({libraryItems}: {libraryItems: unknown}) => {
-        try {
-            localStorage.setItem(LIBRARY_KEY, JSON.stringify(libraryItems));
-        } catch {
-            // A full storage loses the library's last change
-        }
-    },
-};
+installLibraryNote();
 
 type ToolbarState = React.ComponentProps<typeof BoardToolbar>['appState'];
 
@@ -80,10 +64,14 @@ type Props = {
     theme: 'light' | 'dark';
     locale: string;
     onAPI: (api: ExcalidrawImperativeAPI | null) => void;
+
+    // The items of the libraries of the board's community, and what the library offers to get more
+    sharedItems: LibraryItem[];
+    libraryNote: LibraryNoteState;
 };
 
 // ExcalidrawCanvas is the Excalidraw (MIT) editor of a board, kept in sync by the session, under the board's toolbar.
-export default function ExcalidrawCanvas({session, title, editable, theme, locale, onAPI}: Props) {
+export default function ExcalidrawCanvas({session, title, editable, theme, locale, onAPI, sharedItems, libraryNote}: Props) {
     const [api, setAPI] = useState<ExcalidrawImperativeAPI | null>(null);
 
     // Excalidraw loads its initial data after giving its API, and that replaces the scene: the session takes the
@@ -97,7 +85,22 @@ export default function ExcalidrawCanvas({session, title, editable, theme, local
         (wrap.current?.querySelector('.layer-ui__wrapper [aria-label="Undo"]') as HTMLButtonElement | null)?.click();
     }, []);
 
-    useHandleLibrary({excalidrawAPI: api, adapter: libraryAdapter});
+    // The library: the user's own items, kept in the browser, and the items of the community's libraries. Both are
+    // in the initial data; once it's loaded, the shared items follow the libraries, and the user's are saved.
+    const shared = useRef(sharedItems);
+    shared.current = sharedItems;
+    const loadedRef = useRef(false);
+    loadedRef.current = loaded;
+    useEffect(() => {
+        if (api && loaded) {
+            api.updateLibrary({libraryItems: (current) => withSharedItems(current, sharedItems as unknown as LibraryItems), merge: false});
+        }
+    }, [api, loaded, sharedItems]);
+    const saveLibrary = useCallback((items: LibraryItems) => {
+        if (loadedRef.current) {
+            savePersonalItems(items);
+        }
+    }, []);
     const library = useCallback(() => api?.toggleSidebar({name: 'default', tab: 'library'}), [api]);
 
     useEffect(() => {
@@ -139,56 +142,63 @@ export default function ExcalidrawCanvas({session, title, editable, theme, local
         elements: session.elements as unknown as ExcalidrawElement[],
         appState: {viewBackgroundColor: 'transparent'},
         scrollToContent: true,
+        libraryItems: withSharedItems(loadPersonalItems(), shared.current) as unknown as LibraryItems,
     }), [session]);
 
     return (
-        <div
-            ref={wrap}
-            className={cx('wb-engine')}
-        >
-            <BoardToolbar
-                api={api}
-                appState={style}
-                editable={editable}
-                theme={theme}
-                onUndo={undo}
-                onLibrary={library}
-            />
-            <div className={cx('wb-stage')}>
-                <Excalidraw
-                    excalidrawAPI={setAPI}
-                    initialData={initialData}
-                    isCollaborating={true}
-                    viewModeEnabled={!editable}
+        <LibraryNoteContext.Provider value={libraryNote}>
+            <div
+                ref={wrap}
+                className={cx('wb-engine')}
+            >
+                <BoardToolbar
+                    api={api}
+                    appState={style}
+                    editable={editable}
                     theme={theme}
-                    name={title}
-                    langCode={excalidrawLanguage(locale)}
-                    onChange={(elements, appState, files) => {
-                        const next = toolbarState(appState);
-                        setStyle((old) => (sameState(old, next) ? old : next));
-                        if (!loaded) {
-                            if (!appState.isLoading) {
-                                setLoaded(true);
-                            }
-                            return;
-                        }
-                        session.handleChange(elements as unknown as SceneElement[], files as unknown as Record<string, BoardFile>);
-                    }}
-                    onPointerUpdate={({pointer, button}) => session.handlePointer(pointer, button, api?.getAppState().selectedElementIds || {})}
-                    UIOptions={{
-                        canvasActions: {
-
-                            // Opening a file replaces the board without telling the others: the plugin
-                            // imports files itself.
-                            loadScene: false,
-                            saveToActiveFile: false,
-                            toggleTheme: null,
-                            export: {saveFileToDisk: true},
-                            saveAsImage: true,
-                        },
-                    }}
+                    onUndo={undo}
+                    onLibrary={library}
                 />
+                <div className={cx('wb-stage')}>
+                    <Excalidraw
+                        excalidrawAPI={setAPI}
+                        initialData={initialData}
+                        isCollaborating={true}
+                        viewModeEnabled={!editable}
+                        theme={theme}
+                        name={title}
+                        langCode={excalidrawLanguage(locale)}
+                        onLibraryChange={saveLibrary}
+
+                        // Web pages embedded in boards would load from other sites
+                        validateEmbeddable={false}
+                        onChange={(elements, appState, files) => {
+                            const next = toolbarState(appState);
+                            setStyle((old) => (sameState(old, next) ? old : next));
+                            if (!loaded) {
+                                if (!appState.isLoading) {
+                                    setLoaded(true);
+                                }
+                                return;
+                            }
+                            session.handleChange(elements as unknown as SceneElement[], files as unknown as Record<string, BoardFile>);
+                        }}
+                        onPointerUpdate={({pointer, button}) => session.handlePointer(pointer, button, api?.getAppState().selectedElementIds || {})}
+                        UIOptions={{
+                            canvasActions: {
+
+                                // Opening a file replaces the board without telling the others: the plugin
+                                // imports files itself.
+                                loadScene: false,
+                                saveToActiveFile: false,
+                                toggleTheme: null,
+                                export: {saveFileToDisk: true},
+                                saveAsImage: true,
+                            },
+                        }}
+                    />
+                </div>
             </div>
-        </div>
+        </LibraryNoteContext.Provider>
     );
 }

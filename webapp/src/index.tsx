@@ -9,6 +9,7 @@ import {FormattedMessage} from 'react-intl';
 import {Client4} from 'mattermost-redux/client';
 
 import {events} from './client';
+import AdminLibraries from './components/admin_libraries';
 import BoardPost from './components/board_post';
 import BoardsPanel from './components/boards_panel';
 import manifest from './manifest';
@@ -63,6 +64,9 @@ export default class Plugin implements PluginClass {
         setShowPanel(() => store.dispatch(rhs.showRHSPlugin));
 
         registry.registerPostTypeComponent(BOARD_POST_TYPE, BoardPost);
+
+        // The server-wide libraries of shapes, in the plugin's settings of the System Console
+        registry.registerAdminConsoleCustomSetting?.('Libraries', AdminLibraries, {showTitle: true});
     }
 }
 

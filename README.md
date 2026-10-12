@@ -19,11 +19,22 @@ several people at once, with everyone's pointer visible.
   the others; changes made offline are sent when the connection is back.
 - **History.** A version of each board is kept every 10 minutes or so while it's drawn on (the last
   20): preview and restore them from **Version history** (restoring is an edit, it can be undone).
+- **Libraries.** Excalidraw's library panel holds your own shapes (kept in your browser) and the
+  shared libraries: the server-wide ones, added by the system admins in the plugin's settings of the
+  System Console, and those of the community (team) of the board, added by its admins from
+  **Manage libraries** in a board's menu or in the library panel. A library is an `.excalidrawlib`
+  file (version 1 or 2, 5 MB at most; 100 libraries and 20 MB per community, and for the server);
+  only its drawable elements are kept (images and embedded web pages are left out). Excalidraw's
+  "Browse libraries" (libraries.excalidraw.com) is replaced by these, and members are told to ask an
+  admin.
 - **Import and export.** Download a board as `.excalidraw`, PNG or SVG (also from Excalidraw's own
   menu); import an `.excalidraw` file (it replaces the board's content, for everyone).
 - **Share in the channel** posts a card with a thumbnail of the board, which opens it.
 - **Works offline from the internet.** Excalidraw and its fonts are shipped in the plugin; it
-  doesn't load anything from a CDN.
+  doesn't load anything from a CDN, and never calls excalidraw.com or its services: the build
+  (`webapp/excalidraw_offline_loader.js`) removes Excalidraw's links to them (library, publishing,
+  help, social links, fonts' fallback) and fails if the bundle still names one. Web pages can't be
+  embedded in boards.
 
 ## How it works
 
@@ -52,6 +63,14 @@ the notes plugin's README), plus:
 | `GET`, `PUT /docs/{id}/files/{file_id}` | an image of the board (`{"mimeType", "dataURL", "created"}`) |
 | `GET`, `PUT /docs/{id}/thumbnail` | the PNG thumbnail of the board |
 | `POST /docs/{id}/share` | post a card linking to the board in its channel |
+| `GET /libraries?channel_id=&team_id=` | the server's libraries, and those of the channel's team (or of `team_id` for direct messages and personal boards), with whether the user manages them |
+| `POST /libraries` | add a library: multipart form with `file` (the `.excalidrawlib`), `name` and `team_id` (none for a server-wide library) |
+| `GET /libraries/{id}/items` | the items of a library, as an `.excalidrawlib` file |
+| `PATCH`, `DELETE /libraries/{id}` | rename (`{"name"}`) or delete a library |
+
+Libraries are added, renamed and deleted by the system admins (server-wide ones, and any
+community's) and by the admins of a team (its own: the *Manage team* permission); the changes are
+recorded in the audit log.
 
 ## Trying it with two users
 

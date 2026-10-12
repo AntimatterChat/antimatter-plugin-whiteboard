@@ -2,7 +2,7 @@
 // See LICENSE.txt for license information.
 
 import type {ExcalidrawImperativeAPI} from '@excalidraw/excalidraw/types';
-import React, {Suspense, useCallback, useEffect, useRef, useState, useSyncExternalStore} from 'react';
+import React, {Suspense, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore} from 'react';
 import {FormattedMessage, useIntl} from 'react-intl';
 import {useSelector} from 'react-redux';
 
@@ -11,6 +11,7 @@ import type {GlobalState} from '@mattermost/types/store';
 import {Client4} from 'mattermost-redux/client';
 import {getChannel, getCurrentChannel} from 'mattermost-redux/selectors/entities/channels';
 import {getTeammateNameDisplaySetting, getTheme} from 'mattermost-redux/selectors/entities/preferences';
+import {getCurrentTeamId} from 'mattermost-redux/selectors/entities/teams';
 import {getCurrentUser} from 'mattermost-redux/selectors/entities/users';
 import {displayUsername} from 'mattermost-redux/utils/user_utils';
 
@@ -24,9 +25,11 @@ import {cx} from '../ui/web_ui';
 import {setOpenDoc} from '../ui_state';
 
 import BoardHistory, {type BoardVersion} from './board_history';
+import LibraryManager from './library_manager';
 import Menu, {type MenuItem} from './menu';
 import ScopeChip, {FavoriteButton} from './scope';
 import {useSteadyStatus} from './steady_status';
+import {useSharedLibraries} from './use_libraries';
 
 // Excalidraw is large: it's loaded when a board is opened.
 const ExcalidrawCanvas = React.lazy(() => import(/* webpackChunkName: "excalidraw" */ '../excalidraw/canvas'));
@@ -174,7 +177,7 @@ export default function BoardView({docId}: {docId: string}) {
     const [doc, setDoc] = useState<Doc | null>(null);
     const [docError, setDocError] = useState('');
     const [deleted, setDeleted] = useState(false);
-    const [view, setView] = useState<'board' | 'history'>('board');
+    const [view, setView] = useState<'board' | 'history' | 'libraries'>('board');
     const [notice, setNotice] = useState('');
     const apiRef = useRef<ExcalidrawImperativeAPI | null>(null);
     const rootRef = useRef<HTMLDivElement>(null);
@@ -185,6 +188,13 @@ export default function BoardView({docId}: {docId: string}) {
     const {session, error: sessionError} = useSession(docId, user);
     const channel = useSelector((state: GlobalState) => (doc?.channel_id ? getChannel(state, doc.channel_id) : null));
     const currentChannel = useSelector(getCurrentChannel);
+
+    // The libraries of the board's community: its channel's team, or the current team for the boards without one
+    const currentTeamId = useSelector(getCurrentTeamId);
+    const shared = useSharedLibraries(Boolean(doc), doc?.channel_id, currentTeamId);
+    const canManageLibraries = Boolean(shared.libraries?.can_manage_team || shared.libraries?.can_manage_server);
+    const manageLibraries = useCallback(() => setView('libraries'), []);
+    const libraryNote = useMemo(() => ({canManage: canManageLibraries, onManage: manageLibraries}), [canManageLibraries, manageLibraries]);
 
     useEffect(() => {
         client.getDoc(docId).then(setDoc, (err) => setDocError(err.status === 404 ? intl.formatMessage({id: 'whiteboard.not_found', defaultMessage: 'This board was deleted, or you can\'t open it.'}) : err.message));
@@ -208,7 +218,7 @@ export default function BoardView({docId}: {docId: string}) {
             title={intl.formatMessage({id: 'whiteboard.back', defaultMessage: 'All boards'})}
             aria-label={intl.formatMessage({id: 'whiteboard.back', defaultMessage: 'All boards'})}
             onClick={() => {
-                if (view === 'history') {
+                if (view !== 'board') {
                     setView('board');
                     return;
                 }
@@ -277,6 +287,13 @@ export default function BoardView({docId}: {docId: string}) {
         label: intl.formatMessage({id: 'whiteboard.menu.history', defaultMessage: 'Version history'}),
         onClick: () => setView('history'),
     });
+    if (canManageLibraries) {
+        items.push({
+            icon: 'library',
+            label: intl.formatMessage({id: 'whiteboard.menu.libraries', defaultMessage: 'Manage libraries'}),
+            onClick: manageLibraries,
+        });
+    }
     if (editable) {
         items.push({
             icon: 'upload',
@@ -355,7 +372,7 @@ export default function BoardView({docId}: {docId: string}) {
         >
             <div className={cx('wb-bar')}>
                 {back}
-                {view === 'history' ? (
+                {view === 'history' && (
                     <span className={cx('wb-title', 'wb-history-title')}>
                         <FormattedMessage
                             id='whiteboard.history.title'
@@ -363,7 +380,16 @@ export default function BoardView({docId}: {docId: string}) {
                             values={{title: doc.title}}
                         />
                     </span>
-                ) : (
+                )}
+                {view === 'libraries' && (
+                    <span className={cx('wb-title', 'wb-history-title')}>
+                        <FormattedMessage
+                            id='whiteboard.libraries.title'
+                            defaultMessage='Libraries'
+                        />
+                    </span>
+                )}
+                {view === 'board' && (
                     <TitleInput
                         doc={doc}
                         editable={editable}
@@ -414,10 +440,17 @@ export default function BoardView({docId}: {docId: string}) {
                                 theme={boardTheme}
                                 locale={me.locale || 'en'}
                                 onAPI={onAPI}
+                                sharedItems={shared.items}
+                                libraryNote={libraryNote}
                             />
                         </Suspense>
                     )}
                 </div>
+                {view === 'libraries' && (
+                    <div className={cx('wb-history-layer')}>
+                        <LibraryManager where={{channelId: doc.channel_id, teamId: currentTeamId}}/>
+                    </div>
+                )}
                 {view === 'history' && (
                     <div className={cx('wb-history-layer')}>
                         <BoardHistory
