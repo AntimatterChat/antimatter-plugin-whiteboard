@@ -90,6 +90,12 @@ make check-style
 The webpack build of the webapp needs about 3 GB of memory. Set
 `MM_SERVICESETTINGS_ENABLEDEVELOPER=true` to only build the server for the current platform.
 
+## Documentation
+
+See the [user guide](https://antimatter.chat/docs/users/apps.html#whiteboard) and the
+[admin guide](https://antimatter.chat/docs/admins/apps.html#kanban-notes) on
+[antimatter.chat/docs](https://antimatter.chat/docs/).
+
 ## Feedback and support
 
 Found a bug in the Whiteboard plugin, or missing a feature? Please [open an
