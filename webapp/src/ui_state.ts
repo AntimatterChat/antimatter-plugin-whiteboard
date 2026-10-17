@@ -59,6 +59,18 @@ export function panelOpened(channelId: string) {
     closedIn = null;
 }
 
+// restorePanel puts the panel where it was in the window it was popped out of (see panel_state.ts), as it first
+// renders: quietly, as the panel reads it right after; panelRestored then tells the others (the shared cards).
+export function restorePanel(docId: string | null, view: ListView) {
+    openDocId = docId;
+    listView = view;
+    closedIn = null;
+}
+
+export function panelRestored() {
+    listeners.forEach((l) => l());
+}
+
 // setShowPanel sets how to show the whiteboard panel (the right-hand sidebar of the plugin).
 export function setShowPanel(show: () => void) {
     showPanel = show;
