@@ -9,6 +9,9 @@ import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 // eslint-disable-next-line import/no-unresolved
 import '@excalidraw/excalidraw/index.css';
 
+// Excalidraw's interface, its portalled dialogs and menus included, in Fusion's colours under the Fusion UI.
+import './fusion_theme.css';
+
 import type {default as BoardSession, BoardFile, Canvas} from '../board_session';
 import {loadPersonalItems, savePersonalItems, withSharedItems, type LibraryItem} from '../libraries';
 import type {SceneElement} from '../scene';

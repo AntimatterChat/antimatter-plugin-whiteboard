@@ -43,16 +43,7 @@
 :is(.am-app, .am-layer) .am-wb-card .am-card-author .am-ic { color: #FB923C; }
 :is(.am-app, .am-layer) .am-wb-thumb { display: block; padding: 0; border-radius: 8px; overflow: hidden; border: 1px solid var(--am-line); background: #fff; max-width: 100%; }
 :is(.am-app, .am-layer) .am-wb-thumb img { display: block; max-width: 100%; max-height: 240px; object-fit: contain; }
-:is(.am-app, .am-layer) .am-wb-excalidraw .excalidraw {
-  --color-primary: var(--am-matter);
-  --color-primary-darker: var(--am-matter);
-  --color-primary-darkest: var(--am-matter);
-  --color-primary-hover: var(--am-matter);
-  --color-primary-light: var(--am-matter-soft);
-  --island-bg-color: var(--am-raise);
-  --popup-bg-color: var(--am-raise);
-  --ui-font: var(--am-font-ui);
-}
+/* Excalidraw's own interface, in the board and portalled out of it, takes Fusion's tokens: excalidraw/fusion_theme.css. */
 
 /* Version history, over the board */
 :is(.am-app, .am-layer) .am-wb-history-layer { position: absolute; inset: 0; z-index: 30; display: flex; flex-direction: column; background: var(--am-main); overflow-y: auto; }
@@ -89,8 +80,6 @@
 :is(.am-app, .am-layer) .am-wb-fill-cross-hatch { background: repeating-linear-gradient(135deg, currentColor 0 1.5px, transparent 1.5px 5px), repeating-linear-gradient(45deg, currentColor 0 1.5px, transparent 1.5px 5px); }
 :is(.am-app, .am-layer) .am-wb-fill-solid { background: currentColor; }
 :is(.am-app, .am-layer) .am-wb-color-dot { display: block; width: 18px; height: 18px; border: 3px solid var(--c); border-radius: 50%; background: var(--f); }
-/* Excalidraw's library, in the Fusion UI's colours. */
-:is(.am-app, .am-layer) .am-wb-stage .excalidraw .sidebar { --sidebar-bg-color: var(--am-raise); --sidebar-border-color: var(--am-line); }
 :is(.am-wb-stage, .amw-wb-stage) .excalidraw, :is(.am-wb-stage, .amw-wb-stage) .excalidraw .excalidraw__canvas-wrapper { background: transparent; }
 :is(.am-app, .am-layer) .am-wb-stage { background-color: var(--am-main); background-image: radial-gradient(var(--am-line) 1px, transparent 1px); background-size: 18px 18px; }
 :is(.am-app, .am-layer) .am-wb-tools .am-grow { flex: 1; }
