@@ -18,14 +18,14 @@
 :is(.am-app, .am-layer) .am-wb-excalidraw { position: absolute; inset: 0; }
 /* Shared or personal at a glance, both in the app's colour: a filled tile for the channel's, an outlined one with a
    lock for your own (muted would read as disabled). */
-:is(.am-app, .am-layer) .am-wb-row-ic { position: relative; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 8px; background: color-mix(in srgb, #FB923C 16%, transparent); color: #FB923C; }
-:is(.am-app, .am-layer) .am-wb-row-ic.am-wb-row-personal { background: transparent; box-shadow: inset 0 0 0 1.5px color-mix(in srgb, #FB923C 70%, transparent); color: #FB923C; }
-:is(.am-app, .am-layer) .am-wb-row-lock { position: absolute; right: -4px; bottom: -4px; display: grid; place-items: center; width: 16px; height: 16px; border-radius: 50%; background: var(--am-side); color: #FB923C; }
+:is(.am-app, .am-layer) .am-wb-row-ic { position: relative; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 8px; background: color-mix(in srgb, var(--am-cc, #FB923C) 16%, transparent); color: var(--am-cc, #FB923C); }
+:is(.am-app, .am-layer) .am-wb-row-ic.am-wb-row-personal { background: transparent; box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--am-cc, #FB923C) 70%, transparent); color: var(--am-cc, #FB923C); }
+:is(.am-app, .am-layer) .am-wb-row-lock { position: absolute; right: -4px; bottom: -4px; display: grid; place-items: center; width: 16px; height: 16px; border-radius: 50%; background: var(--am-side); color: var(--am-cc, #FB923C); }
 :is(.am-app, .am-layer) .am-wb-row-lock .am-ic { width: 10px; height: 10px; }
 :is(.am-app, .am-layer) .am-wb-scope { flex: none; display: inline-flex; align-items: center; gap: 4px; max-width: 140px; height: 22px; padding: 0 8px; border-radius: 11px; font: 600 11.5px var(--am-font-ui); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 :is(.am-app, .am-layer) .am-wb-scope .am-ic { flex: none; width: 12px; height: 12px; }
-:is(.am-app, .am-layer) .am-wb-scope-shared { background: color-mix(in srgb, #FB923C 16%, transparent); color: #FB923C; }
-:is(.am-app, .am-layer) .am-wb-scope-personal { background: transparent; box-shadow: inset 0 0 0 1px color-mix(in srgb, #FB923C 70%, transparent); color: #FB923C; }
+:is(.am-app, .am-layer) .am-wb-scope-shared { background: color-mix(in srgb, var(--am-cc, #FB923C) 16%, transparent); color: var(--am-cc, #FB923C); }
+:is(.am-app, .am-layer) .am-wb-scope-personal { background: transparent; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--am-cc, #FB923C) 70%, transparent); color: var(--am-cc, #FB923C); }
 :is(.am-app, .am-layer) .am-wb-row-main { min-width: 0; }
 :is(.am-app, .am-layer) .am-wb-h-btn { width: 26px; height: 26px; color: var(--am-muted); }
 :is(.am-app, .am-layer) .am-wb-h-btn:hover { background: var(--am-hover); color: var(--am-text); }
@@ -40,7 +40,7 @@
 :is(.am-app, .am-layer) .am-wb-menu button:hover { background: var(--am-matter); color: #fff; }
 :is(.am-app, .am-layer) .am-wb-menu button.am-danger { color: var(--am-danger); }
 :is(.am-app, .am-layer) .am-wb-menu button.am-danger:hover { background: var(--am-danger); color: #fff; }
-:is(.am-app, .am-layer) .am-wb-card .am-card-author .am-ic { color: #FB923C; }
+:is(.am-app, .am-layer) .am-wb-card .am-card-author .am-ic { color: var(--am-cc, #FB923C); }
 :is(.am-app, .am-layer) .am-wb-thumb { display: block; padding: 0; border-radius: 8px; overflow: hidden; border: 1px solid var(--am-line); background: #fff; max-width: 100%; }
 :is(.am-app, .am-layer) .am-wb-thumb img { display: block; max-width: 100%; max-height: 240px; object-fit: contain; }
 /* Excalidraw's own interface, in the board and portalled out of it, takes Fusion's tokens: excalidraw/fusion_theme.css. */
