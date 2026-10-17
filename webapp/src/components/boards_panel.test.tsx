@@ -106,6 +106,9 @@ function renderApp(props: {initialPanelState?: string} = {}) {
     return setPanelState;
 }
 
+// A board opened from its card in the channel, as the cards do
+const openFromCard = (docId: string) => act(() => setOpenDoc(docId));
+
 beforeEach(() => {
     jest.clearAllMocks();
     setOpenDoc(null);
@@ -170,8 +173,7 @@ describe('in the main window', () => {
         fireEvent.click(await screen.findByRole('tab', {name: 'Mine'}));
         expect(setPanelState).toHaveBeenLastCalledWith('list/mine');
 
-        // A board opened from its card in the channel
-        act(() => setOpenDoc('b1'));
+        openFromCard('b1');
         expect(await screen.findByRole('textbox', {name: 'Title'})).toBeInTheDocument();
         expect(setPanelState).toHaveBeenLastCalledWith('board/b1');
     });
