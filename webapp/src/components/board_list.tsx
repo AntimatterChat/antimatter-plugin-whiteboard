@@ -11,10 +11,12 @@ import {getCurrentUserId} from 'mattermost-redux/selectors/entities/users';
 
 import {client, events} from '../client';
 import type {Doc} from '../relay/client';
-import Icon from '../ui/icon';
-import {cx} from '../ui/web_ui';
+import Icon, {type IconName} from '../ui/icon';
+import {cx, isFusionUI} from '../ui/web_ui';
 import {setListView, setOpenDoc, useListView} from '../ui_state';
 
+import EmptyState from './fusion/empty_state';
+import {iconTip} from './fusion/tip';
 import {useDisplayName} from './hooks';
 import RelativeTime from './relative_time';
 import ScopeChip from './scope';
@@ -58,12 +60,28 @@ type SectionProps = {
     title: React.ReactNode;
     docs: Doc[] | null;
     empty: React.ReactNode;
+
+    // The icon of its empty state, under Fusion
+    emptyIcon: IconName;
     canCreate: boolean;
     onCreate: () => void;
     createLabel: string;
 };
 
-function Section({title, docs, empty, canCreate, onCreate, createLabel, showScope = false}: SectionProps) {
+function Section({title, docs, empty, emptyIcon, canCreate, onCreate, createLabel, showScope = false}: SectionProps) {
+    const intl = useIntl();
+
+    // Under Fusion, the one thing to do from an empty list: a new board (the classic UI keeps its + only)
+    const createAction = {
+        label: createLabel,
+        onClick: onCreate,
+        icon: (
+            <Icon
+                name='plus'
+                size='sm'
+            />
+        ),
+    };
     return (
         <>
             <div className={cx('app-h')}>
@@ -71,8 +89,7 @@ function Section({title, docs, empty, canCreate, onCreate, createLabel, showScop
                 {canCreate && (
                     <button
                         className={cx('icon-btn', 'wb-h-btn')}
-                        title={createLabel}
-                        aria-label={createLabel}
+                        {...iconTip(createLabel)}
                         onClick={onCreate}
                     >
                         <Icon
@@ -88,7 +105,16 @@ function Section({title, docs, empty, canCreate, onCreate, createLabel, showScop
                     doc={doc}
                     showScope={showScope}
                 />
-            )) : <div className={cx('wb-empty')}>{docs ? empty : '…'}</div>}
+            )) : (
+                <EmptyState
+                    busy={!docs}
+                    icon={<Icon name={emptyIcon}/>}
+                    text={docs ? empty : intl.formatMessage({id: 'whiteboard.list.loading', defaultMessage: 'Loading the boards…', description: 'Shown while a list of whiteboards (the channel\'s, the favourites or the personal ones) loads.'})}
+                    {...(docs && canCreate && isFusionUI() ? {action: createAction} : {})}
+                    classicClassName={cx('wb-empty')}
+                    data-testid='boards-empty'
+                />
+            )}
         </>
     );
 }
@@ -230,6 +256,7 @@ export default function BoardList({channel}: {channel?: Channel}) {
                             defaultMessage='Star a board to find it here, wherever it is.'
                         />
                     }
+                    emptyIcon='star'
                     canCreate={false}
                     onCreate={() => null}
                     createLabel=''
@@ -252,6 +279,7 @@ export default function BoardList({channel}: {channel?: Channel}) {
                             defaultMessage='No boards here yet. Every member of the channel can draw on the boards added here.'
                         />
                     }
+                    emptyIcon='draw'
                     canCreate={!archived}
                     onCreate={() => create(false)}
                     createLabel={intl.formatMessage({id: 'whiteboard.list.new_channel', defaultMessage: 'New board in this channel'})}
@@ -272,6 +300,7 @@ export default function BoardList({channel}: {channel?: Channel}) {
                             defaultMessage='Only you can see your personal boards.'
                         />
                     }
+                    emptyIcon='lock'
                     canCreate={true}
                     onCreate={() => create(true)}
                     createLabel={intl.formatMessage({id: 'whiteboard.list.new_personal', defaultMessage: 'New personal board'})}

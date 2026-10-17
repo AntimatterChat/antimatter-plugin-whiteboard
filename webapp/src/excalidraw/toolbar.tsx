@@ -7,6 +7,7 @@ import type {AppState, ExcalidrawImperativeAPI} from '@excalidraw/excalidraw/typ
 import React, {useEffect, useRef, useState} from 'react';
 import {useIntl} from 'react-intl';
 
+import {iconTip} from '../components/fusion/tip';
 import Icon, {type IconName} from '../ui/icon';
 import {cx} from '../ui/web_ui';
 
@@ -158,8 +159,7 @@ export default function BoardToolbar({api, appState, editable, theme, onUndo, on
         <button
             type='button'
             className={menu === name ? cx('on') : ''}
-            title={label}
-            aria-label={label}
+            {...iconTip(label)}
             aria-haspopup='dialog'
             aria-expanded={menu === name}
             onClick={() => setMenu(menu === name ? null : name)}
@@ -172,8 +172,7 @@ export default function BoardToolbar({api, appState, editable, theme, onUndo, on
             key={label}
             type='button'
             className={cx('wb-choice', on && 'on')}
-            title={label}
-            aria-label={label}
+            {...iconTip(label)}
             aria-pressed={on}
             onClick={onClick}
         >
@@ -186,8 +185,7 @@ export default function BoardToolbar({api, appState, editable, theme, onUndo, on
             type='button'
             className={cx('swatch', on && 'on', color === 'transparent' && 'swatch-none')}
             style={{'--am-c': shown(color), '--c': shown(color)} as React.CSSProperties}
-            title={label}
-            aria-label={label}
+            {...iconTip(label)}
             aria-pressed={on}
             onClick={onClick}
         />
@@ -205,8 +203,7 @@ export default function BoardToolbar({api, appState, editable, theme, onUndo, on
                     key={t.type}
                     type='button'
                     className={appState.tool === t.type ? cx('on') : ''}
-                    title={intl.formatMessage(t.label)}
-                    aria-label={intl.formatMessage(t.label)}
+                    {...iconTip(intl.formatMessage(t.label))}
                     aria-pressed={appState.tool === t.type}
                     onClick={() => api.setActiveTool({type: t.type})}
                 >
@@ -227,16 +224,14 @@ export default function BoardToolbar({api, appState, editable, theme, onUndo, on
                     <span className={cx('sep')}/>
                     <button
                         type='button'
-                        title={intl.formatMessage({id: 'whiteboard.tool.library', defaultMessage: 'Library'})}
-                        aria-label={intl.formatMessage({id: 'whiteboard.tool.library', defaultMessage: 'Library'})}
+                        {...iconTip(intl.formatMessage({id: 'whiteboard.tool.library', defaultMessage: 'Library'}))}
                         onClick={onLibrary}
                     >
                         <Icon name='library'/>
                     </button>
                     <button
                         type='button'
-                        title={intl.formatMessage({id: 'whiteboard.tool.undo', defaultMessage: 'Undo (Ctrl+Z)'})}
-                        aria-label={intl.formatMessage({id: 'whiteboard.tool.undo', defaultMessage: 'Undo (Ctrl+Z)'})}
+                        {...iconTip(intl.formatMessage({id: 'whiteboard.tool.undo', defaultMessage: 'Undo (Ctrl+Z)'}))}
                         onClick={onUndo}
                     >
                         <Icon name='undo'/>

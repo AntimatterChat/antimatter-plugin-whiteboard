@@ -14,6 +14,8 @@ import type {Doc} from '../relay/client';
 import Icon from '../ui/icon';
 import {cx} from '../ui/web_ui';
 
+import {iconTip, tip} from './fusion/tip';
+
 // ScopeChip tells at a glance whose a board is: shared with a channel (its name, in the app's colour), or
 // personal (a lock, muted).
 export default function ScopeChip({doc}: {doc: Doc}) {
@@ -23,7 +25,7 @@ export default function ScopeChip({doc}: {doc: Doc}) {
         return (
             <span
                 className={cx('wb-scope', 'wb-scope-personal')}
-                title={intl.formatMessage({id: 'whiteboard.scope.personal_tip', defaultMessage: 'Personal: only you can see it'})}
+                {...tip(intl.formatMessage({id: 'whiteboard.scope.personal_tip', defaultMessage: 'Personal: only you can see it'}))}
             >
                 <Icon
                     name='lock'
@@ -38,7 +40,7 @@ export default function ScopeChip({doc}: {doc: Doc}) {
     return (
         <span
             className={cx('wb-scope', 'wb-scope-shared')}
-            title={conversation ? intl.formatMessage({id: 'whiteboard.scope.conversation_tip', defaultMessage: 'Shared with everyone in this conversation'}) : intl.formatMessage({id: 'whiteboard.scope.shared_tip', defaultMessage: 'Shared with everyone in ~{channel}'}, {channel: name})}
+            {...tip(conversation ? intl.formatMessage({id: 'whiteboard.scope.conversation_tip', defaultMessage: 'Shared with everyone in this conversation'}) : intl.formatMessage({id: 'whiteboard.scope.shared_tip', defaultMessage: 'Shared with everyone in ~{channel}'}, {channel: name}))}
         >
             <Icon
                 name={conversation ? 'users' : 'hash'}
@@ -59,8 +61,7 @@ export function FavoriteButton({doc}: {doc: Doc}) {
         <button
             type='button'
             className={cx('icon-btn', 'wb-star', favorite && 'on')}
-            title={label}
-            aria-label={label}
+            {...iconTip(label)}
             aria-pressed={favorite}
             onClick={() => {
                 setFavorite(!favorite);

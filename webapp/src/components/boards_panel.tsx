@@ -7,7 +7,7 @@ import {useSelector} from 'react-redux';
 import {getCurrentChannel} from 'mattermost-redux/selectors/entities/channels';
 
 import {panelStateOf, parsePanelState} from '../panel_state';
-import {cx} from '../ui/web_ui';
+import {APP_COLOUR_STYLE, cx} from '../ui/web_ui';
 import {panelClosed, panelOpened, panelRestored, restorePanel, useListView, useOpenDoc} from '../ui_state';
 
 import BoardList from './board_list';
@@ -54,7 +54,10 @@ export default function BoardsPanel({setPanelState, initialPanelState}: Props) {
     }, [setPanelState, state]);
 
     return (
-        <div className={cx('wb-root')}>
+        <div
+            className={cx('wb-root')}
+            style={APP_COLOUR_STYLE}
+        >
             {docId ? (
                 <BoardView
                     key={docId}

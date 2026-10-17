@@ -9,7 +9,7 @@ import type {Post} from '@mattermost/types/posts';
 import {client} from '../client';
 import type {Doc} from '../relay/client';
 import Icon from '../ui/icon';
-import {cx} from '../ui/web_ui';
+import {APP_COLOUR_STYLE, cx} from '../ui/web_ui';
 import {openBoard} from '../ui_state';
 
 import RelativeTime from './relative_time';
@@ -47,7 +47,10 @@ export default function BoardPost({post}: {post: Post}) {
     const available = doc !== null;
 
     return (
-        <div className={cx('card', 'compact', 'wb-card')}>
+        <div
+            className={cx('card', 'compact', 'wb-card')}
+            style={APP_COLOUR_STYLE}
+        >
             <div className={cx('card-author')}>
                 <Icon
                     name='draw'

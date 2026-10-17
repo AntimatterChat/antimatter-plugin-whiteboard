@@ -1,0 +1,118 @@
+/* Copyright (c) 2026-present Antimatter contributors. See LICENSE.txt for license information. */
+
+/*
+ * Excalidraw in the Fusion UI's colours. Excalidraw draws its interface with its own theme variables (on .excalidraw,
+ * and on .excalidraw.theme--dark for its dark theme), and portals its dialogs, menus and popovers to the end of the
+ * page, in other .excalidraw containers outside the board. Under Fusion only (html[data-am-web-ui="fusion"]), every
+ * .excalidraw container, the board's and the portalled ones, light or dark, takes Fusion's tokens instead, which
+ * already follow Fusion's theme; the board follows Fusion's theme too (ui/theme.ts), so they agree. The classic UI
+ * keeps Excalidraw's own look.
+ *
+ * Left alone: --theme-filter (the dark theme's inversion of the canvas: what's drawn keeps its colours) and the
+ * canvas's own colours, which Excalidraw draws from the scene, not from CSS.
+ *
+ * :is(.excalidraw, .excalidraw.theme--dark) is as specific as Excalidraw's dark rules, plus the html attribute, so
+ * these win in both themes whatever the order the stylesheets load in.
+ */
+html[data-am-web-ui="fusion"] :is(.excalidraw, .excalidraw.theme--dark) {
+  /* Type */
+  --ui-font: var(--am-font-ui);
+
+  /* Accent: Fusion's matter. Hover and pressed shades move toward the text, so they read in both themes. */
+  --color-primary: var(--am-matter);
+  --color-primary-hover: color-mix(in srgb, var(--am-matter) 88%, var(--am-text));
+  --color-primary-darker: color-mix(in srgb, var(--am-matter) 82%, var(--am-text));
+  --color-primary-darkest: color-mix(in srgb, var(--am-matter) 72%, var(--am-text));
+  --color-primary-light: var(--am-matter-soft);
+  --color-primary-light-darker: color-mix(in srgb, var(--am-matter) 26%, transparent);
+  --color-brand-hover: color-mix(in srgb, var(--am-matter) 88%, var(--am-text));
+  --color-brand-active: var(--am-matter);
+  --color-surface-primary-container: var(--am-matter-soft);
+  --color-on-primary-container: var(--am-text);
+  --color-promo: var(--am-matter);
+  --color-logo-icon: var(--am-matter);
+  --select-highlight-color: var(--am-matter);
+  --focus-highlight-color: color-mix(in srgb, var(--am-matter) 55%, transparent);
+  --link-color: var(--am-anti);
+
+  /* Surfaces: the page, the raised islands (toolbars, menus, popovers, dialogs, the library) and the controls */
+  --default-bg-color: var(--am-main);
+  --island-bg-color: var(--am-raise);
+  --popup-bg-color: var(--am-raise);
+  --popup-secondary-bg-color: var(--am-side);
+  --sidebar-bg-color: var(--am-raise);
+  --color-surface-lowest: var(--am-main);
+  --color-surface-low: var(--am-side);
+  --color-surface-mid: var(--am-side);
+  --color-surface-high: var(--am-raise-2);
+  --button-hover-bg: var(--am-raise-2);
+  --button-active-bg: var(--am-select);
+  --button-active-border: var(--am-matter);
+  --button-gray-1: var(--am-raise-2);
+  --button-gray-2: var(--am-hover);
+  --button-gray-3: var(--am-select);
+  --input-bg-color: var(--am-main);
+  --input-hover-bg-color: var(--am-side);
+  --overlay-bg-color: color-mix(in srgb, var(--am-main) 88%, transparent);
+
+  /* Text and icons */
+  --color-on-surface: var(--am-text);
+  --text-primary-color: var(--am-text);
+  --icon-fill-color: var(--am-text);
+  --popup-text-color: var(--am-text);
+  --popup-text-inverted-color: var(--am-main);
+  --input-label-color: var(--am-text-2);
+  --keybinding-color: var(--am-faint);
+  --color-disabled: var(--am-faint);
+  --color-muted-darker: var(--am-muted);
+  --ExcTextField--color: var(--am-text);
+  --ExcTextField--label-color: var(--am-text-2);
+
+  /* Lines */
+  --default-border-color: var(--am-line);
+  --dialog-border-color: var(--am-line);
+  --sidebar-border-color: var(--am-line);
+  --input-border-color: var(--am-line);
+  --list-border-color: var(--am-line);
+  --avatar-border-color: var(--am-side);
+  --color-border-outline: var(--am-muted);
+  --color-border-outline-variant: var(--am-line);
+  --ExcTextField--border: var(--am-line);
+  --scrollbar-thumb: var(--am-raise-2);
+  --scrollbar-thumb-hover: var(--am-faint);
+
+  /* Danger: Fusion's red */
+  --color-danger: var(--am-danger);
+  --color-danger-dark: var(--am-danger);
+  --color-danger-darker: color-mix(in srgb, var(--am-danger) 88%, var(--am-text));
+  --color-danger-darkest: color-mix(in srgb, var(--am-danger) 76%, var(--am-text));
+  --color-danger-text: var(--am-danger);
+  --color-danger-background: color-mix(in srgb, var(--am-danger) 12%, transparent);
+  --color-danger-icon-background: color-mix(in srgb, var(--am-danger) 20%, transparent);
+  --color-danger-color: var(--am-danger);
+  --color-danger-icon-color: var(--am-danger);
+  --button-destructive-bg-color: color-mix(in srgb, var(--am-danger) 14%, transparent);
+  --button-destructive-color: var(--am-danger);
+
+  /* Shape: Fusion's rounder corners and its shadow */
+  --border-radius-md: 8px;
+  --border-radius-lg: 12px;
+  --shadow-island: var(--am-shadow);
+  --modal-shadow: var(--am-shadow);
+  --sidebar-shadow: var(--am-shadow);
+  --library-dropdown-shadow: var(--am-shadow);
+
+  /* The page's theme sets --button-color (its primary buttons' text, white), which Excalidraw's buttons would take:
+     unset, they keep Excalidraw's own (now Fusion's) colours. */
+  --button-color: initial;
+}
+
+/* Dialogs over Fusion's scrim */
+html[data-am-web-ui="fusion"] .excalidraw .Modal__background { background-color: rgba(0, 0, 0, 0.7); }
+html[data-am-web-ui="fusion"] .excalidraw .Modal .Island { border: 1px solid var(--am-line); }
+
+/* Excalidraw's tooltips (outside any .excalidraw container) as Fusion's */
+html[data-am-web-ui="fusion"] .excalidraw-tooltip { --ui-font: var(--am-font-ui); padding: 5px 9px; border-radius: 6px; background: #111214; color: #F2F3F5; font: 600 12.5px var(--am-font-ui); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35); }
+
+/* The library's search field had fixed greys (and a dark one as specific as .excalidraw.theme--dark.excalidraw) */
+html[data-am-web-ui="fusion"] :is(.excalidraw, .excalidraw.theme--dark.excalidraw) .layer-ui__search-header .ExcTextField__input { background-color: var(--am-side); }

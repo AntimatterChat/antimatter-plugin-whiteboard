@@ -2,13 +2,16 @@
 // See LICENSE.txt for license information.
 
 import React, {useEffect, useState} from 'react';
-import {FormattedDate, FormattedMessage, FormattedTime} from 'react-intl';
+import {FormattedDate, FormattedMessage, FormattedTime, useIntl} from 'react-intl';
 
 import type {BoardFile} from '../board_session';
 import {client} from '../client';
 import type {Version} from '../relay/client';
 import {decodeScene, imageFileIds, type SceneElement} from '../scene';
+import Icon from '../ui/icon';
 import {cx} from '../ui/web_ui';
+
+import EmptyState from './fusion/empty_state';
 
 const loadTools = () => import(/* webpackChunkName: "excalidraw" */ '../excalidraw/tools');
 
@@ -34,6 +37,7 @@ type Props = {
 
 // BoardHistory lists the past versions of a board, shows them and restores them.
 export default function BoardHistory({docId, dark, canRestore, onRestore}: Props) {
+    const intl = useIntl();
     const [versions, setVersions] = useState<Version[] | null>(null);
     const [selected, setSelected] = useState<number | null>(null);
     const [version, setVersion] = useState<BoardVersion | null>(null);
@@ -79,16 +83,23 @@ export default function BoardHistory({docId, dark, canRestore, onRestore}: Props
         return <div className={cx('wb-error')}>{error}</div>;
     }
     if (!versions) {
-        return <div className={cx('wb-empty')}>{'…'}</div>;
+        return (
+            <EmptyState
+                busy={true}
+                text={intl.formatMessage({id: 'whiteboard.history.loading', defaultMessage: 'Loading the versions…', description: 'Shown while the list of past versions of a whiteboard loads.'})}
+                classicClassName={cx('wb-empty')}
+                data-testid='history-empty'
+            />
+        );
     }
     if (!versions.length) {
         return (
-            <div className={cx('wb-empty')}>
-                <FormattedMessage
-                    id='whiteboard.history.empty'
-                    defaultMessage='No past versions yet. Versions are kept every 10 minutes or so while a board is drawn on.'
-                />
-            </div>
+            <EmptyState
+                icon={<Icon name='clock'/>}
+                text={intl.formatMessage({id: 'whiteboard.history.empty', defaultMessage: 'No past versions yet. Versions are kept every 10 minutes or so while a board is drawn on.'})}
+                classicClassName={cx('wb-empty')}
+                data-testid='history-empty'
+            />
         );
     }
 
@@ -112,7 +123,13 @@ export default function BoardHistory({docId, dark, canRestore, onRestore}: Props
                     </button>
                 ))}
             </div>
-            {selected !== null && !preview && <div className={cx('wb-empty')}>{'…'}</div>}
+            {selected !== null && !preview && (
+                <EmptyState
+                    busy={true}
+                    text={intl.formatMessage({id: 'whiteboard.history.loading_version', defaultMessage: 'Loading this version…', description: 'Shown while the preview of a past version of a whiteboard, chosen in its version history, loads.'})}
+                    classicClassName={cx('wb-empty')}
+                />
+            )}
             {version && preview && (
                 <>
                     <div className={cx('wb-preview')}>
