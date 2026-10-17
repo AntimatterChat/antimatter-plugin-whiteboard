@@ -25,6 +25,9 @@ import {cx} from '../ui/web_ui';
 import {setOpenDoc} from '../ui_state';
 
 import BoardHistory, {type BoardVersion} from './board_history';
+import {confirmDialog} from './fusion/confirm_dialog';
+import EmptyState from './fusion/empty_state';
+import {iconTip} from './fusion/tip';
 import LibraryManager from './library_manager';
 import Menu, {type MenuItem} from './menu';
 import ScopeChip, {FavoriteButton} from './scope';
@@ -215,8 +218,7 @@ export default function BoardView({docId}: {docId: string}) {
     const back = (
         <button
             className={cx('icon-btn')}
-            title={intl.formatMessage({id: 'whiteboard.back', defaultMessage: 'All boards'})}
-            aria-label={intl.formatMessage({id: 'whiteboard.back', defaultMessage: 'All boards'})}
+            {...iconTip(intl.formatMessage({id: 'whiteboard.back', defaultMessage: 'All boards'}))}
             onClick={() => {
                 if (view !== 'board') {
                     setView('board');
@@ -232,12 +234,29 @@ export default function BoardView({docId}: {docId: string}) {
         </button>
     );
 
+    const loadingBoard = intl.formatMessage({id: 'whiteboard.loading', defaultMessage: 'Loading the board…', description: 'Shown while an open whiteboard and its drawing load.'});
+    const cancelLabel = intl.formatMessage({id: 'whiteboard.confirm.cancel', defaultMessage: 'Cancel', description: 'Button closing a confirmation dialog of the Whiteboard app without doing anything.'});
     const failure = docError || sessionError || (deleted && intl.formatMessage({id: 'whiteboard.deleted', defaultMessage: 'This board was deleted.'}));
     if (failure || !doc || !session) {
         return (
             <div className={cx('wb-wrap')}>
                 <div className={cx('wb-bar')}>{back}</div>
-                <div className={failure ? cx('wb-error') : cx('wb-empty')}>{failure || '…'}</div>
+                {failure ? (
+                    <EmptyState
+                        tone='danger'
+                        icon={<Icon name='draw'/>}
+                        title={failure}
+                        classicClassName={cx('wb-error')}
+                        data-testid='board-failure'
+                    />
+                ) : (
+                    <EmptyState
+                        busy={true}
+                        text={loadingBoard}
+                        classicClassName={cx('wb-empty')}
+                        data-testid='board-loading'
+                    />
+                )}
             </div>
         );
     }
@@ -341,9 +360,16 @@ export default function BoardView({docId}: {docId: string}) {
             icon: 'trash',
             label: intl.formatMessage({id: 'whiteboard.menu.delete', defaultMessage: 'Delete'}),
             danger: true,
-            onClick: () => {
-                // eslint-disable-next-line no-alert
-                if (window.confirm(intl.formatMessage({id: 'whiteboard.delete.confirm', defaultMessage: 'Delete "{title}" for everyone? This can\'t be undone.'}, {title: doc.title}))) {
+            onClick: async () => {
+                const yes = await confirmDialog({
+                    title: intl.formatMessage({id: 'whiteboard.delete.title', defaultMessage: 'Delete "{title}"?', description: 'Title of the dialog confirming the deletion of a whiteboard; {title} is the board\'s title.'}, {title: doc.title}),
+                    message: intl.formatMessage({id: 'whiteboard.delete.lead', defaultMessage: 'It\'s deleted for everyone. This can\'t be undone.', description: 'Sentence under the title of the dialog confirming the deletion of a whiteboard: what deleting it does.'}),
+                    confirmLabel: intl.formatMessage({id: 'whiteboard.menu.delete', defaultMessage: 'Delete'}),
+                    cancelLabel,
+                    danger: true,
+                    icon: 'trash',
+                });
+                if (yes) {
                     client.deleteDoc(doc.id).then(() => setOpenDoc(null), (err) => setNotice(err.message));
                 }
             },
@@ -358,12 +384,28 @@ export default function BoardView({docId}: {docId: string}) {
         })();
     };
 
-    const importFile = (file: File) => {
-        // eslint-disable-next-line no-alert
-        if (window.confirm(intl.formatMessage({id: 'whiteboard.import.confirm', defaultMessage: 'Replace the content of "{title}" with {file}, for everyone?'}, {title: doc.title, file: file.name}))) {
+    const importFile = async (file: File) => {
+        const yes = await confirmDialog({
+            title: intl.formatMessage({id: 'whiteboard.import.title', defaultMessage: 'Replace the content of "{title}"?', description: 'Title of the dialog confirming the import of an .excalidraw file into a whiteboard; {title} is the board\'s title.'}, {title: doc.title}),
+            message: intl.formatMessage({id: 'whiteboard.import.lead', defaultMessage: 'What\'s drawn on it is replaced by {file}, for everyone.', description: 'Sentence under the title of the dialog confirming the import of an .excalidraw file into a whiteboard; {file} is the name of the file.'}, {file: file.name}),
+            confirmLabel: intl.formatMessage({id: 'whiteboard.import.replace', defaultMessage: 'Replace', description: 'Button of the dialog confirming the import of an .excalidraw file: replaces the board\'s content with the file\'s.'}),
+            cancelLabel,
+            danger: true,
+            icon: 'upload',
+        });
+        if (yes) {
             withAPI((tools, api) => tools.importScene(api, file))();
         }
     };
+
+    const boardLoading = (
+        <EmptyState
+            busy={true}
+            text={loadingBoard}
+            classicClassName={cx('wb-empty')}
+            data-testid='board-loading'
+        />
+    );
 
     return (
         <div
@@ -431,8 +473,8 @@ export default function BoardView({docId}: {docId: string}) {
             )}
             <div className={cx('wb-canvas')}>
                 <div className={cx('wb-excalidraw')}>
-                    {session.status === 'loading' ? <div className={cx('wb-empty')}>{'…'}</div> : (
-                        <Suspense fallback={<div className={cx('wb-empty')}>{'…'}</div>}>
+                    {session.status === 'loading' ? boardLoading : (
+                        <Suspense fallback={boardLoading}>
                             <ExcalidrawCanvas
                                 session={session}
                                 title={doc.title}

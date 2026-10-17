@@ -9,6 +9,10 @@ import {formatSize, librariesChanged, type Libraries, type Library} from '../lib
 import Icon from '../ui/icon';
 import {cx} from '../ui/web_ui';
 
+import {confirmDialog} from './fusion/confirm_dialog';
+import EmptyState from './fusion/empty_state';
+import {iconTip} from './fusion/tip';
+
 // A scope of libraries: the server's (teamId empty), or a community's.
 type LibraryScope = {
     teamId: string;
@@ -67,8 +71,15 @@ function LibraryRow({library, canManage, c, admin, onRenamed, onDeleted, onError
     };
 
     const remove = async () => {
-        // eslint-disable-next-line no-alert
-        if (!window.confirm(intl.formatMessage({id: 'whiteboard.libraries.delete.confirm', defaultMessage: 'Delete the library "{name}"? Its shapes leave the library of every board.'}, {name: library.name}))) {
+        const yes = await confirmDialog({
+            title: intl.formatMessage({id: 'whiteboard.libraries.delete.title', defaultMessage: 'Delete the library "{name}"?', description: 'Title of the dialog confirming the deletion of a library of shapes; {name} is the library\'s name.'}, {name: library.name}),
+            message: intl.formatMessage({id: 'whiteboard.libraries.delete.lead', defaultMessage: 'Its shapes leave the library of every board.', description: 'Sentence under the title of the dialog confirming the deletion of a library of shapes: what deleting it does.'}),
+            confirmLabel: intl.formatMessage({id: 'whiteboard.libraries.delete', defaultMessage: 'Delete'}),
+            cancelLabel: intl.formatMessage({id: 'whiteboard.confirm.cancel', defaultMessage: 'Cancel', description: 'Button closing a confirmation dialog of the Whiteboard app without doing anything.'}),
+            danger: true,
+            icon: 'trash',
+        });
+        if (!yes) {
             return;
         }
         setBusy(true);
@@ -98,8 +109,7 @@ function LibraryRow({library, canManage, c, admin, onRenamed, onDeleted, onError
         <button
             type='button'
             className={c('icon-btn', 'wb-h-btn')}
-            title={label}
-            aria-label={label}
+            {...iconTip(label)}
             disabled={busy}
             onClick={onClick}
         >
@@ -198,6 +208,17 @@ export default function LibraryManager({where, admin = false}: Props) {
         }
     };
 
+    // Nothing (yet) in a scope: Fusion's empty state in a board, the classic line in the System Console.
+    const empty = (busy: boolean, text: string) => (admin ? <div className={c('wb-empty')}>{text}</div> : (
+        <EmptyState
+            busy={busy}
+            icon={<Icon name='library'/>}
+            text={text}
+            classicClassName={c('wb-empty')}
+            data-testid='libraries-empty'
+        />
+    ));
+
     const scopes: LibraryScope[] = [];
     if (libraries?.team_id && !admin) {
         scopes.push({
@@ -247,8 +268,9 @@ export default function LibraryManager({where, admin = false}: Props) {
                                     <button
                                         type='button'
                                         className={admin ? 'btn btn-primary btn-sm' : c('icon-btn', 'wb-h-btn')}
-                                        title={addLabel}
-                                        aria-label={addLabel}
+
+                                        // The System Console keeps the classic markup, and the browser's tooltip
+                                        {...(admin ? {title: addLabel, 'aria-label': addLabel} : iconTip(addLabel))}
                                         disabled={Boolean(uploading)}
                                         onClick={() => inputs.current[key]?.click()}
                                     >
@@ -283,7 +305,7 @@ export default function LibraryManager({where, admin = false}: Props) {
                                 </>
                             )}
                         </div>
-                        {uploading === key && <div className={c('wb-empty')}>{'…'}</div>}
+                        {uploading === key && empty(true, intl.formatMessage({id: 'whiteboard.libraries.adding', defaultMessage: 'Adding the library…', description: 'Shown while a library of shapes (.excalidrawlib file) is being uploaded.'}))}
                         {shown?.length ? shown.map((library) => (
                             <LibraryRow
                                 key={library.id}
@@ -295,16 +317,7 @@ export default function LibraryManager({where, admin = false}: Props) {
                                 onDeleted={changed}
                                 onError={setError}
                             />
-                        )) : (
-                            <div className={c('wb-empty')}>
-                                {shown ? (
-                                    <FormattedMessage
-                                        id='whiteboard.libraries.empty'
-                                        defaultMessage='No libraries yet.'
-                                    />
-                                ) : '…'}
-                            </div>
-                        )}
+                        )) : empty(!shown, shown ? intl.formatMessage({id: 'whiteboard.libraries.empty', defaultMessage: 'No libraries yet.'}) : intl.formatMessage({id: 'whiteboard.libraries.loading', defaultMessage: 'Loading the libraries…', description: 'Shown while the libraries of shapes of a community or of the server load.'}))}
                     </section>
                 );
             })}

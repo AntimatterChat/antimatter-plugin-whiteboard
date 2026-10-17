@@ -6,6 +6,8 @@ import React, {useEffect, useRef, useState} from 'react';
 import Icon, {type IconName} from '../ui/icon';
 import {cx} from '../ui/web_ui';
 
+import {iconTip} from './fusion/tip';
+
 export type MenuItem = {
     icon: IconName;
     label: string;
@@ -42,8 +44,7 @@ export default function Menu({label, items}: {label: string; items: MenuItem[]})
         >
             <button
                 className={cx('icon-btn')}
-                title={label}
-                aria-label={label}
+                {...iconTip(label)}
                 aria-haspopup='menu'
                 aria-expanded={open}
                 onClick={() => setOpen(!open)}

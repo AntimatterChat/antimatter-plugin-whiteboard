@@ -32,7 +32,6 @@
 /* The switch between the channel's items and your own, as the todo app's: across the panel. */
 :is(.am-app, .am-layer) .am-wb-seg { display: flex; margin-bottom: 4px; }
 :is(.am-app, .am-layer) .am-wb-seg button { flex: 1; }
-:is(.am-app, .am-layer) .am-wb-empty { padding: 10px 12px; color: var(--am-muted); font-size: 13px; }
 :is(.am-app, .am-layer) .am-wb-error { margin: 10px 12px; padding: 8px 10px; border-radius: 8px; background: color-mix(in srgb, var(--am-danger) 12%, transparent); color: var(--am-danger); font-size: 13px; }
 :is(.am-app, .am-layer) .am-wb-notice { margin: 6px 12px; padding: 6px 10px; border-radius: 8px; background: var(--am-side); color: var(--am-text-2); font-size: 12.5px; text-align: left; }
 :is(.am-app, .am-layer) .am-wb-menu-wrap { position: relative; }
@@ -116,6 +115,8 @@
 .amw-seg button { flex: 1; height: 30px; border-radius: 6px; color: rgba(var(--center-channel-color-rgb), 0.64); font-size: 13.5px; font-weight: 600; }
 .amw-seg button.amw-on { background: rgba(var(--center-channel-color-rgb), 0.08); color: var(--center-channel-color); }
 .amw-wb-empty { padding: 10px 12px; color: rgba(var(--center-channel-color-rgb), 0.64); font-size: 13px; }
+/* The shared empty state's parts (components/fusion/empty_state.tsx) read as the one line they were. */
+:is(.amw-wb-empty, .amw-wb-error) > :is(b, p) { display: block; margin: 0; font-weight: inherit; }
 .amw-wb-error { margin: 10px 12px; padding: 8px 10px; border-radius: 4px; background: rgba(var(--error-text-color-rgb), 0.08); color: var(--error-text); font-size: 13px; }
 .amw-wb-notice { margin: 6px 12px; padding: 6px 10px; border-radius: 4px; background: rgba(var(--center-channel-color-rgb), 0.06); font-size: 12.5px; text-align: left; }
 .amw-wb-wrap { position: relative; flex: 1; height: 100%; min-height: 0; display: flex; flex-direction: column; background: var(--center-channel-bg); }
