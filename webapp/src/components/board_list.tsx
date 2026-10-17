@@ -197,7 +197,7 @@ export default function BoardList({channel}: {channel?: Channel}) {
                     >
                         <FormattedMessage
                             id='whiteboard.list.view_favorites'
-                            defaultMessage='Favorites'
+                            defaultMessage='Favourites'
                         />
                     </button>
                     <button
@@ -220,7 +220,7 @@ export default function BoardList({channel}: {channel?: Channel}) {
                     title={
                         <FormattedMessage
                             id='whiteboard.list.favorites'
-                            defaultMessage='Favorites'
+                            defaultMessage='Favourites'
                         />
                     }
                     docs={favoriteDocs}

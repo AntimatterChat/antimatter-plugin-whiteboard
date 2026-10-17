@@ -54,7 +54,7 @@ export function FavoriteButton({doc}: {doc: Doc}) {
     const intl = useIntl();
     const [favorite, setFavorite] = useState(Boolean(doc.favorite));
     useEffect(() => setFavorite(Boolean(doc.favorite)), [doc.id, doc.favorite]);
-    const label = favorite ? intl.formatMessage({id: 'whiteboard.favorite.remove', defaultMessage: 'Remove from favorites'}) : intl.formatMessage({id: 'whiteboard.favorite.add', defaultMessage: 'Add to favorites'});
+    const label = favorite ? intl.formatMessage({id: 'whiteboard.favorite.remove', defaultMessage: 'Remove from favourites'}) : intl.formatMessage({id: 'whiteboard.favorite.add', defaultMessage: 'Add to favourites'});
     return (
         <button
             type='button'

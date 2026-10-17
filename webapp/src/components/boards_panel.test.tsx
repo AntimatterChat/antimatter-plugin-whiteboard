@@ -136,7 +136,7 @@ describe('in the window it was popped out into', () => {
     test('the panel starts on the list it showed', async () => {
         const setPanelState = renderApp({initialPanelState: 'list/favorites'});
 
-        expect(await screen.findByRole('tab', {name: 'Favorites'})).toHaveAttribute('aria-selected', 'true');
+        expect(await screen.findByRole('tab', {name: 'Favourites'})).toHaveAttribute('aria-selected', 'true');
         expect(mocked.listFavorites).toHaveBeenCalled();
         expect(setPanelState).toHaveBeenLastCalledWith('list/favorites');
     });
