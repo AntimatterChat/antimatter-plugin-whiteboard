@@ -243,7 +243,7 @@ describe('under the Fusion UI', () => {
         expect(container.querySelectorAll('[title]')).toHaveLength(0);
 
         fireEvent.click(back);
-        const create = await screen.findByRole('button', {name: 'New board in this channel'});
+        const create = within(await screen.findByTestId('boards-section-head')).getByRole('button', {name: 'New board in this channel'});
         expect(create).toHaveAttribute('data-am-tip', 'New board in this channel');
         expect(container.querySelectorAll('[title]')).toHaveLength(0);
     });
@@ -251,9 +251,10 @@ describe('under the Fusion UI', () => {
     test('an empty list is Fusion\'s empty state, with the one thing to do: a new board', async () => {
         mocked.createDoc.mockResolvedValue({...board, id: 'b2'});
         renderPanel();
-        const empty = await screen.findByText('No boards here yet. Every member of the channel can draw on the boards added here.');
+        const empty = await screen.findByText('No boards here yet');
         const state = empty.closest('[data-empty-state]')!;
         expect(state).toHaveClass('am-empty', 'amfx-empty');
+        expect(within(state as HTMLElement).getByText('Every member of the channel can draw on the boards added here.')).toBeInTheDocument();
         expect(state.querySelector('.amfx-empty-ic [class*="am-ic"]')).not.toBeNull();
         const action = within(state as HTMLElement).getByRole('button', {name: 'New board in this channel'});
         expect(action).toHaveClass('am-btn', 'am-primary');
@@ -312,7 +313,7 @@ describe('under the classic UI', () => {
         expect(create).toHaveAttribute('title', 'New board in this channel');
         expect(create).not.toHaveAttribute('data-am-tip');
 
-        const empty = await screen.findByText('No boards here yet. Every member of the channel can draw on the boards added here.');
+        const empty = await screen.findByText('No boards here yet');
         const state = empty.closest('[data-empty-state]')!;
         expect(state.className).toBe('amw-wb-empty');
         expect(state.querySelector('button')).toBeNull();

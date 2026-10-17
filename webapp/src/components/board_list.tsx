@@ -26,6 +26,7 @@ function BoardRow({doc, showScope = false}: {doc: Doc; showScope?: boolean}) {
     const editor = useDisplayName(doc.updated_by || doc.creator_id);
     return (
         <button
+            type='button'
             className={cx('app-row')}
             onClick={() => setOpenDoc(doc.id)}
         >
@@ -46,7 +47,15 @@ function BoardRow({doc, showScope = false}: {doc: Doc; showScope?: boolean}) {
                     <FormattedMessage
                         id='whiteboard.list.edited'
                         defaultMessage='Edited {when} by {name}'
-                        values={{when: <RelativeTime value={doc.update_at}/>, name: editor || '…'}}
+                        values={{
+                            when: (
+                                <RelativeTime
+                                    key='when'
+                                    value={doc.update_at}
+                                />
+                            ),
+                            name: editor || '…',
+                        }}
                     />
                 </span>
             </span>
@@ -57,71 +66,86 @@ function BoardRow({doc, showScope = false}: {doc: Doc; showScope?: boolean}) {
 
 type SectionProps = {
     showScope?: boolean;
+
+    // What the view is: "Shared with {channel}", "Favourites" or "Personal boards", on the left of its header row
     title: React.ReactNode;
     docs: Doc[] | null;
-    empty: React.ReactNode;
 
-    // The icon of its empty state, under Fusion
-    emptyIcon: IconName;
-    canCreate: boolean;
-    onCreate: () => void;
-    createLabel: string;
+    // What the view shows without boards: an icon (under Fusion), a title and a sentence.
+    empty: {icon: IconName; title: string; text: string};
+
+    // The + on the right of the header row, making a board in the view's scope: none in the favourites, nor in an
+    // archived channel. Under Fusion, the empty view also offers it as its one action.
+    create?: {label: string; onClick: () => void} | null;
 };
 
-function Section({title, docs, empty, emptyIcon, canCreate, onCreate, createLabel, showScope = false}: SectionProps) {
+// Section is the boards of the view picked in the tabs above it: a header row (what the view is, and the + making a
+// board there), then the boards, or the view's empty state.
+function Section({title, docs, empty, create, showScope = false}: SectionProps) {
     const intl = useIntl();
-
-    // Under Fusion, the one thing to do from an empty list: a new board (the classic UI keeps its + only)
-    const createAction = {
-        label: createLabel,
-        onClick: onCreate,
-        icon: (
-            <Icon
-                name='plus'
-                size='sm'
+    const plusIcon = (
+        <Icon
+            name='plus'
+            size='sm'
+        />
+    );
+    let body: React.ReactNode;
+    if (docs?.length) {
+        body = docs.map((doc) => (
+            <BoardRow
+                key={doc.id}
+                doc={doc}
+                showScope={showScope}
             />
-        ),
-    };
+        ));
+    } else if (docs) {
+        body = (
+            <EmptyState
+                icon={<Icon name={empty.icon}/>}
+                title={empty.title}
+                text={empty.text}
+                {...(create && isFusionUI() ? {action: {...create, icon: plusIcon}} : {})}
+                classicClassName={cx('wb-empty')}
+                data-testid='boards-empty'
+            />
+        );
+    } else {
+        body = (
+            <EmptyState
+                busy={true}
+                text={intl.formatMessage({id: 'whiteboard.list.loading', defaultMessage: 'Loading the boards…', description: 'Shown while a list of whiteboards (the channel\'s, the favourites or the personal ones) loads.'})}
+                classicClassName={cx('wb-empty')}
+                data-testid='boards-empty'
+            />
+        );
+    }
     return (
         <>
-            <div className={cx('app-h')}>
+            <div
+                className={cx('app-h')}
+                data-testid='boards-section-head'
+            >
                 <span className={cx('grow')}>{title}</span>
-                {canCreate && (
+                {create && (
                     <button
+                        type='button'
                         className={cx('icon-btn', 'wb-h-btn')}
-                        {...iconTip(createLabel)}
-                        onClick={onCreate}
+                        {...iconTip(create.label)}
+                        onClick={create.onClick}
                     >
-                        <Icon
-                            name='plus'
-                            size='sm'
-                        />
+                        {plusIcon}
                     </button>
                 )}
             </div>
-            {docs?.length ? docs.map((doc) => (
-                <BoardRow
-                    key={doc.id}
-                    doc={doc}
-                    showScope={showScope}
-                />
-            )) : (
-                <EmptyState
-                    busy={!docs}
-                    icon={<Icon name={emptyIcon}/>}
-                    text={docs ? empty : intl.formatMessage({id: 'whiteboard.list.loading', defaultMessage: 'Loading the boards…', description: 'Shown while a list of whiteboards (the channel\'s, the favourites or the personal ones) loads.'})}
-                    {...(docs && canCreate && isFusionUI() ? {action: createAction} : {})}
-                    classicClassName={cx('wb-empty')}
-                    data-testid='boards-empty'
-                />
-            )}
+            {body}
         </>
     );
 }
 
 const byUpdate = (a: Doc, b: Doc) => b.update_at - a.update_at;
 
-// BoardList lists the boards of the current channel and the user's personal boards.
+// BoardList lists the boards of the current channel, the user's favourites or their personal boards: the tabs, then
+// the view's header row (what it is, and the + making a board there) and its boards.
 export default function BoardList({channel}: {channel?: Channel}) {
     const intl = useIntl();
     const me = useSelector(getCurrentUserId);
@@ -183,10 +207,11 @@ export default function BoardList({channel}: {channel?: Channel}) {
     };
 
     const archived = Boolean(channel?.delete_at);
-    const channelName = channel?.type === 'D' || channel?.type === 'G' ? intl.formatMessage({id: 'whiteboard.list.conversation', defaultMessage: 'this conversation'}) : channel?.display_name;
+    const conversation = channel?.type === 'D' || channel?.type === 'G';
+    const channelName = conversation ? intl.formatMessage({id: 'whiteboard.list.conversation', defaultMessage: 'this conversation'}) : channel?.display_name;
 
     const shown = channel || view === 'favorites' ? view : 'mine';
-    const conversation = channel?.type === 'D' || channel?.type === 'G';
+    const newInChannel = conversation ? intl.formatMessage({id: 'whiteboard.list.new_conversation', defaultMessage: 'New board in this conversation', description: 'The + of the Whiteboard panel\'s "Shared with this conversation" row, in a direct or group message.'}) : intl.formatMessage({id: 'whiteboard.list.new_channel', defaultMessage: 'New board in this channel'});
 
     return (
         <div className={cx('app-panel', 'wb-list')}>
@@ -243,67 +268,38 @@ export default function BoardList({channel}: {channel?: Channel}) {
             {error && <div className={cx('wb-error')}>{error}</div>}
             {shown === 'favorites' && (
                 <Section
-                    title={
-                        <FormattedMessage
-                            id='whiteboard.list.favorites'
-                            defaultMessage='Favourites'
-                        />
-                    }
+                    title={intl.formatMessage({id: 'whiteboard.list.favorites', defaultMessage: 'Favourites'})}
                     docs={favoriteDocs}
-                    empty={
-                        <FormattedMessage
-                            id='whiteboard.list.favorites_empty'
-                            defaultMessage='Star a board to find it here, wherever it is.'
-                        />
-                    }
-                    emptyIcon='star'
-                    canCreate={false}
-                    onCreate={() => null}
-                    createLabel=''
+                    empty={{
+                        icon: 'star',
+                        title: intl.formatMessage({id: 'whiteboard.list.starred_empty_title', defaultMessage: 'Nothing starred yet', description: 'Title of the empty Favourites view of the Whiteboard panel: the person has starred no board.'}),
+                        text: intl.formatMessage({id: 'whiteboard.list.favorites_empty', defaultMessage: 'Star a board to find it here, wherever it is.'}),
+                    }}
                     showScope={true}
                 />
             )}
             {shown === 'channel' && channel && (
                 <Section
-                    title={
-                        <FormattedMessage
-                            id='whiteboard.list.channel'
-                            defaultMessage='Shared with {channel}'
-                            values={{channel: channelName}}
-                        />
-                    }
+                    title={intl.formatMessage({id: 'whiteboard.list.channel', defaultMessage: 'Shared with {channel}'}, {channel: channelName})}
                     docs={channelDocs}
-                    empty={
-                        <FormattedMessage
-                            id='whiteboard.list.channel_empty'
-                            defaultMessage='No boards here yet. Every member of the channel can draw on the boards added here.'
-                        />
-                    }
-                    emptyIcon='draw'
-                    canCreate={!archived}
-                    onCreate={() => create(false)}
-                    createLabel={intl.formatMessage({id: 'whiteboard.list.new_channel', defaultMessage: 'New board in this channel'})}
+                    empty={{
+                        icon: 'draw',
+                        title: intl.formatMessage({id: 'whiteboard.list.channel_empty_title', defaultMessage: 'No boards here yet', description: 'Title of the Whiteboard panel when the current channel or conversation has no boards.'}),
+                        text: conversation ? intl.formatMessage({id: 'whiteboard.list.conversation_empty_text', defaultMessage: 'Every member of the conversation can draw on the boards added here.', description: 'Under "No boards here yet" in the Whiteboard panel, in a direct or group message: who can draw on its boards.'}) : intl.formatMessage({id: 'whiteboard.list.channel_empty_text', defaultMessage: 'Every member of the channel can draw on the boards added here.', description: 'Under "No boards here yet" in the Whiteboard panel: who can draw on a channel\'s boards.'}),
+                    }}
+                    create={archived ? null : {label: newInChannel, onClick: () => create(false)}}
                 />
             )}
             {shown === 'mine' && (
                 <Section
-                    title={
-                        <FormattedMessage
-                            id='whiteboard.list.personal'
-                            defaultMessage='Personal boards'
-                        />
-                    }
+                    title={intl.formatMessage({id: 'whiteboard.list.personal', defaultMessage: 'Personal boards'})}
                     docs={personalDocs}
-                    empty={
-                        <FormattedMessage
-                            id='whiteboard.list.personal_empty'
-                            defaultMessage='Only you can see your personal boards.'
-                        />
-                    }
-                    emptyIcon='lock'
-                    canCreate={true}
-                    onCreate={() => create(true)}
-                    createLabel={intl.formatMessage({id: 'whiteboard.list.new_personal', defaultMessage: 'New personal board'})}
+                    empty={{
+                        icon: 'lock',
+                        title: intl.formatMessage({id: 'whiteboard.list.personal_empty_title', defaultMessage: 'No personal boards yet', description: 'Title of the personal ("Mine") view of the Whiteboard panel when the person has no personal boards.'}),
+                        text: intl.formatMessage({id: 'whiteboard.list.personal_empty', defaultMessage: 'Only you can see your personal boards.'}),
+                    }}
+                    create={{label: intl.formatMessage({id: 'whiteboard.list.new_personal', defaultMessage: 'New personal board'}), onClick: () => create(true)}}
                 />
             )}
         </div>
