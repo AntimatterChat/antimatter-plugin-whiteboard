@@ -33,7 +33,7 @@
 :is(.am-app, .am-layer) .am-wb-seg { display: flex; margin-bottom: 4px; }
 :is(.am-app, .am-layer) .am-wb-seg button { flex: 1; }
 :is(.am-app, .am-layer) .am-wb-empty { padding: 10px 12px; color: var(--am-muted); font-size: 13px; }
-:is(.am-app, .am-layer) .am-wb-error { margin: 10px 12px; padding: 8px 10px; border-radius: 8px; background: rgba(242, 63, 67, 0.12); color: var(--am-danger); font-size: 13px; }
+:is(.am-app, .am-layer) .am-wb-error { margin: 10px 12px; padding: 8px 10px; border-radius: 8px; background: color-mix(in srgb, var(--am-danger) 12%, transparent); color: var(--am-danger); font-size: 13px; }
 :is(.am-app, .am-layer) .am-wb-notice { margin: 6px 12px; padding: 6px 10px; border-radius: 8px; background: var(--am-side); color: var(--am-text-2); font-size: 12.5px; text-align: left; }
 :is(.am-app, .am-layer) .am-wb-menu-wrap { position: relative; }
 :is(.am-app, .am-layer) .am-wb-menu { position: absolute; right: 0; top: calc(100% + 4px); z-index: 20; width: 240px; display: grid; gap: 1px; padding: 6px; border-radius: 12px; background: var(--am-raise); border: 1px solid var(--am-line); box-shadow: var(--am-shadow); }
@@ -207,7 +207,7 @@
 .amw-wb-admin .btn.amw-wb-lib-danger { color: var(--error-text); }
 .amw-wb-admin .amw-wb-empty { padding: 4px 2px; }
 .amw-wb-admin .amw-wb-error, .amw-wb-admin .amw-wb-notice { margin: 0 0 4px; }
-:is(.am-wb-stage, .amw-wb-stage) .excalidraw .wb-library-note { flex: 1; padding: 6px 4px; color: var(--color-gray-60, #7a7a7a); font-size: 12.5px; text-align: center; }
+:is(.am-wb-stage, .amw-wb-stage) .excalidraw .wb-library-note { flex: 1; padding: 6px 4px; color: var(--am-muted, var(--color-gray-60, #7a7a7a)); font-size: 12.5px; text-align: center; }
 /* The app's theme defines --button-color (the text of its primary buttons, white) on the page, and Excalidraw colours
    its own buttons with var(--button-color, ...): the library's tabs, close and menu buttons came out white on white.
    Inside Excalidraw the variable is unset, so its buttons fall back to its own colours. */
@@ -218,5 +218,5 @@
 
 /* A favorite's star, filled in the Fusion UI's colour. */
 :is(.am-app, .am-layer) .am-wb-star { flex: none; color: var(--am-muted); }
-:is(.am-app, .am-layer) .am-wb-star.am-on { color: #F0B232; }
+:is(.am-app, .am-layer) .am-wb-star.am-on { color: var(--am-spark); }
 :is(.am-app, .am-layer) .am-wb-star.am-on .am-ic { fill: currentColor; }
