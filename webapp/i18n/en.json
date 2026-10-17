@@ -53,7 +53,7 @@
   "whiteboard.list.edited": "Edited {when} by {name}",
   "whiteboard.list.favorites": "Favourites",
   "whiteboard.list.favorites_empty": "Star a board to find it here, wherever it is.",
-  "whiteboard.list.loading": "Loading the boards…",
+  "whiteboard.list.loading": "Loading boards…",
   "whiteboard.list.new_channel": "New board in this channel",
   "whiteboard.list.new_conversation": "New board in this conversation",
   "whiteboard.list.new_personal": "New personal board",

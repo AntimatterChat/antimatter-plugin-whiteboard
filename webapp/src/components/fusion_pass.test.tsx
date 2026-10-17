@@ -269,7 +269,7 @@ describe('under the Fusion UI', () => {
         renderPanel();
         const busy = await screen.findByRole('status');
         expect(busy).toHaveClass('am-empty', 'amfx-empty', 'amfx-busy');
-        expect(busy).toHaveTextContent('Loading the boards…');
+        expect(busy).toHaveTextContent('Loading boards…');
         expect(screen.queryByText('…')).toBeNull();
     });
 

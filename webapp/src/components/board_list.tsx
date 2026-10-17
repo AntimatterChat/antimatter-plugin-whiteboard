@@ -113,7 +113,7 @@ function Section({title, docs, empty, create, showScope = false}: SectionProps) 
         body = (
             <EmptyState
                 busy={true}
-                text={intl.formatMessage({id: 'whiteboard.list.loading', defaultMessage: 'Loading the boards…', description: 'Shown while a list of whiteboards (the channel\'s, the favourites or the personal ones) loads.'})}
+                text={intl.formatMessage({id: 'whiteboard.list.loading', defaultMessage: 'Loading boards…', description: 'Shown in the Whiteboard panel while a list of boards (the channel\'s, the favourites or the personal ones) loads.'})}
                 classicClassName={cx('wb-empty')}
                 data-testid='boards-empty'
             />
