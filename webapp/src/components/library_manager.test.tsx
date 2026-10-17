@@ -111,6 +111,7 @@ test('renames and deletes', async () => {
     await act(async () => {
         fireEvent.click(within(team).getByRole('button', {name: 'Delete'}));
     });
+
     // Under the classic UI, still the browser's confirmation
     expect(window.confirm).toHaveBeenCalledWith('Delete the library "Flow charts"?\n\nIts shapes leave the library of every board.');
     await waitFor(() => expect(mocked.deleteLibrary).toHaveBeenCalledWith('t1'));

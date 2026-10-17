@@ -12,6 +12,7 @@ function renderNote(state: LibraryNoteState | null) {
     return render(
         <IntlProvider locale='en'>
             <LibraryNoteContext.Provider value={state}>
+                {/* eslint-disable-next-line new-cap */}
                 <div>{window.AntimatterWhiteboardLibraryButton?.()}</div>
             </LibraryNoteContext.Provider>
         </IntlProvider>,
