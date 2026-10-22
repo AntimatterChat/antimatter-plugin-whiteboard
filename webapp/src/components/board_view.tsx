@@ -343,7 +343,7 @@ export default function BoardView({docId}: {docId: string}) {
     if (!doc.channel_id && currentChannel && !currentChannel.delete_at) {
         items.push({
             icon: 'forward',
-            label: conversation ? intl.formatMessage({id: 'whiteboard.menu.move_conversation', defaultMessage: 'Share in this conversation'}) : intl.formatMessage({id: 'whiteboard.menu.move', defaultMessage: 'Share in ~{channel}'}, {channel: currentChannel.display_name}),
+            label: conversation ? intl.formatMessage({id: 'whiteboard.menu.move_conversation', defaultMessage: 'Share in this conversation'}) : intl.formatMessage({id: 'whiteboard.menu.move', defaultMessage: 'Share in #{channel}'}, {channel: currentChannel.display_name}),
             onClick: async () => {
                 try {
                     await session.saveThumbnail();

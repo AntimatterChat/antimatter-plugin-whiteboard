@@ -40,7 +40,7 @@ export default function ScopeChip({doc}: {doc: Doc}) {
     return (
         <span
             className={cx('wb-scope', 'wb-scope-shared')}
-            {...tip(conversation ? intl.formatMessage({id: 'whiteboard.scope.conversation_tip', defaultMessage: 'Shared with everyone in this conversation'}) : intl.formatMessage({id: 'whiteboard.scope.shared_tip', defaultMessage: 'Shared with everyone in ~{channel}'}, {channel: name}))}
+            {...tip(conversation ? intl.formatMessage({id: 'whiteboard.scope.conversation_tip', defaultMessage: 'Shared with everyone in this conversation'}) : intl.formatMessage({id: 'whiteboard.scope.shared_tip', defaultMessage: 'Shared with everyone in #{channel}'}, {channel: name}))}
         >
             <Icon
                 name={conversation ? 'users' : 'hash'}

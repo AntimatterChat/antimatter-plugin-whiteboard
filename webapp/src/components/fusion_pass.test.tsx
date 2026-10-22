@@ -239,7 +239,7 @@ describe('under the Fusion UI', () => {
         expect(back).toHaveAttribute('data-am-tip', 'All boards');
         expect(screen.getByRole('button', {name: 'Board actions'})).toHaveAttribute('data-am-tip', 'Board actions');
         expect(screen.getByRole('button', {name: 'Add to favourites'})).toHaveAttribute('data-am-tip', 'Add to favourites');
-        expect(container.querySelector('.am-wb-scope')).toHaveAttribute('data-am-tip', 'Shared with everyone in ~Town Square');
+        expect(container.querySelector('.am-wb-scope')).toHaveAttribute('data-am-tip', 'Shared with everyone in #Town Square');
         expect(container.querySelectorAll('[title]')).toHaveLength(0);
 
         fireEvent.click(back);
