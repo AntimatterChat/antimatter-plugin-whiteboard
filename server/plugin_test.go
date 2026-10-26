@@ -257,3 +257,21 @@ func TestChannelAccessReadOnlyWithoutCreatePost(t *testing.T) {
 	// Alice, who can post, still edits it
 	assert.Equal(t, http.StatusOK, serveJSON(p, alice, http.MethodPost, base+"/updates", update).Code)
 }
+
+// The CreatePost of the plugin API doesn't refuse archived channels, and create_post survives archiving:
+// sharing needs editing rights, which an archived channel's boards don't give.
+func TestShareRefusedInArchivedChannel(t *testing.T) {
+	alice := model.NewId()
+	p, api, channels, _ := newTestPlugin(t, alice)
+	api.On("HasPermissionToChannel", alice, channels.channel.Id, model.PermissionCreatePost).Return(true).Maybe()
+
+	w := serveJSON(p, alice, http.MethodPost, "/api/v1/docs", map[string]any{"title": "Flow", "channel_id": channels.channel.Id})
+	require.Equal(t, http.StatusCreated, w.Code, w.Body.String())
+	var doc relay.Doc
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &doc))
+
+	channels.channel.DeleteAt = 1
+	w = serveJSON(p, alice, http.MethodPost, "/api/v1/docs/"+doc.ID+"/share", map[string]any{})
+	assert.Equal(t, http.StatusForbidden, w.Code, w.Body.String())
+	api.AssertNotCalled(t, "CreatePost", mock.Anything)
+}

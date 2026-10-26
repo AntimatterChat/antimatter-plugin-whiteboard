@@ -74,7 +74,8 @@ func escapeMarkdown(s string) string {
 
 // handleShare posts a card linking to a board, with its thumbnail, in its channel.
 func (p *Plugin) handleShare(w http.ResponseWriter, r *http.Request) {
-	doc, err := p.service.RequestDoc(r, false)
+	// Editing rights, not just reading: the CreatePost of the plugin API doesn't refuse archived channels
+	doc, err := p.service.RequestDoc(r, true)
 	if err != nil {
 		p.service.WriteError(w, err)
 		return
