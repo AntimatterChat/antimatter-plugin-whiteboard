@@ -235,6 +235,24 @@ describe('BoardSession', () => {
         expect(alice.session.others().find((c) => c.socketId === 'eve')?.avatarUrl).toBe(`/api/v4/users/${eveId}/image`);
     });
 
+    test('knows when the board is full, and when it has room again', async () => {
+        const relay = new FakeBoardAPI();
+        const alice = await open(relay, 'alice');
+        const changes = jest.fn();
+        alice.session.subscribe(changes);
+
+        relay.full = true;
+        alice.canvas.draw(el('a', 1));
+        await settle();
+        expect(alice.session.full).toBe(true);
+        expect(changes).toHaveBeenCalled();
+
+        relay.full = false;
+        alice.canvas.draw(el('a', 2));
+        await settle();
+        expect(alice.session.full).toBe(false);
+    });
+
     test('saves a thumbnail once the drawing stops', async () => {
         const relay = new FakeBoardAPI();
         const alice = await open(relay, 'alice');

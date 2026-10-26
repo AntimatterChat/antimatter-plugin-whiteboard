@@ -90,6 +90,7 @@
   "whiteboard.scope.shared_tip": "Shared with everyone in #{channel}",
   "whiteboard.shared": "Shared in the channel.",
   "whiteboard.status.error": "Not saved",
+  "whiteboard.status.full": "Board full: new drawings aren't saved",
   "whiteboard.status.loading": "Loading…",
   "whiteboard.status.offline": "Offline",
   "whiteboard.status.read_only": "Read only",

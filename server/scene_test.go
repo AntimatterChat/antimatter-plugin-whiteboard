@@ -61,7 +61,7 @@ func TestMergeScenes(t *testing.T) {
 	m := sceneMerger{now: func() time.Time { return now }}
 
 	snapshot := sceneOf(el("a", 1, 5, "a0", ""), el("b", 3, 5, "a1", ""))
-	merged, err := m.merge(snapshot, [][]byte{
+	merged, _, err := m.merge(snapshot, [][]byte{
 		sceneOf(el("a", 2, 9, "a0", "")),  // newer version wins
 		sceneOf(el("b", 2, 1, "a1", "")),  // older version loses
 		sceneOf(el("c", 1, 1, "Zz", "")),  // new, ordered by index before a0
@@ -75,14 +75,14 @@ func TestMergeScenes(t *testing.T) {
 	assert.Contains(t, string(merged), `"versionNonce":9`)
 
 	// Merging is idempotent
-	again, err := m.merge(merged, [][]byte{snapshot})
+	again, _, err := m.merge(merged, [][]byte{snapshot})
 	require.NoError(t, err)
 	assert.JSONEq(t, string(merged), string(again))
 }
 
 func TestMergeScenesKeepsFields(t *testing.T) {
 	m := sceneMerger{now: time.Now}
-	merged, err := m.merge(nil, [][]byte{sceneOf(el("a", 1, 1, "a0", `"type":"text","text":"hi","customData":{"x":1}`))})
+	merged, _, err := m.merge(nil, [][]byte{sceneOf(el("a", 1, 1, "a0", `"type":"text","text":"hi","customData":{"x":1}`))})
 	require.NoError(t, err)
 	assert.JSONEq(t, `{"elements":[{"id":"a","version":1,"versionNonce":1,"index":"a0","type":"text","text":"hi","customData":{"x":1}}]}`, string(merged))
 }
@@ -93,7 +93,7 @@ func TestMergeScenesDropsOldTombstones(t *testing.T) {
 	recent := now.Add(-time.Hour).UnixMilli()
 	old := now.Add(-48 * time.Hour).UnixMilli()
 
-	merged, err := m.merge(nil, [][]byte{sceneOf(
+	merged, _, err := m.merge(nil, [][]byte{sceneOf(
 		el("kept", 2, 1, "a0", fmt.Sprintf(`"isDeleted":true,"updated":%d`, recent)),
 		el("gone", 2, 1, "a1", fmt.Sprintf(`"isDeleted":true,"updated":%d`, old)),
 		el("live", 1, 1, "a2", fmt.Sprintf(`"updated":%d`, old)),
@@ -104,11 +104,11 @@ func TestMergeScenesDropsOldTombstones(t *testing.T) {
 
 func TestMergeScenesSkipsInvalidUpdates(t *testing.T) {
 	m := sceneMerger{now: time.Now}
-	merged, err := m.merge(nil, [][]byte{[]byte("garbage"), sceneOf(el("a", 1, 1, "a0", ""))})
+	merged, _, err := m.merge(nil, [][]byte{[]byte("garbage"), sceneOf(el("a", 1, 1, "a0", ""))})
 	require.NoError(t, err)
 	assert.Equal(t, []string{"a:1"}, summary(t, merged))
 
-	_, err = m.merge([]byte("garbage"), nil)
+	_, _, err = m.merge([]byte("garbage"), nil)
 	assert.Error(t, err)
 }
 
@@ -123,7 +123,7 @@ func TestMergeScenesBeyondTheBoardLimit(t *testing.T) {
 	snapshot := sceneOf(elements...)
 	assert.Error(t, validateScene(snapshot))
 
-	merged, err := m.merge(snapshot, [][]byte{sceneOf(el("more", 1, 1, "", ""), el("e0", 2, 1, "", ""))})
+	merged, _, err := m.merge(snapshot, [][]byte{sceneOf(el("more", 1, 1, "", ""), el("e0", 2, 1, "", ""))})
 	require.NoError(t, err)
 	got := summary(t, merged)
 	assert.Len(t, got, maxBoardElements+1)
@@ -135,15 +135,21 @@ func TestMergeScenesBeyondTheBoardLimit(t *testing.T) {
 // the changes that make an element larger, and still applies those that don't (deletions too).
 func TestMergeRefusesSnapshotBeyondLimits(t *testing.T) {
 	m := sceneMerger{now: time.Now, maxElements: 3, maxBytes: 1 << 20}
-	merged, err := m.merge(nil, [][]byte{
+	merged, _, err := m.merge(nil, [][]byte{
 		sceneOf(el("a", 1, 1, "a0", ""), el("b", 1, 1, "a1", "")),
 		sceneOf(el("c", 1, 1, "a2", ""), el("d", 1, 1, "a3", "")),
 	})
 	require.NoError(t, err)
 	assert.Equal(t, []string{"a:1", "b:1", "c:1"}, summary(t, merged))
+	_, full, err := m.merge(nil, [][]byte{sceneOf(el("a", 1, 1, "a0", ""), el("b", 1, 1, "a1", ""))})
+	require.NoError(t, err)
+	assert.False(t, full, "nothing left out")
+	_, full, err = m.merge(nil, [][]byte{sceneOf(el("a", 1, 1, "a0", ""), el("b", 1, 1, "a1", ""), el("c", 1, 1, "a2", ""), el("d", 1, 1, "a3", ""))})
+	require.NoError(t, err)
+	assert.True(t, full, "d left out")
 
 	// Full: a deletion and a change of the same size apply, a new element doesn't
-	merged, err = m.merge(merged, [][]byte{sceneOf(
+	merged, _, err = m.merge(merged, [][]byte{sceneOf(
 		el("a", 2, 1, "a0", fmt.Sprintf(`"isDeleted":true,"updated":%d`, time.Now().UnixMilli())),
 		el("b", 2, 1, "a1", ""),
 		el("e", 1, 1, "a4", ""),
@@ -154,15 +160,15 @@ func TestMergeRefusesSnapshotBeyondLimits(t *testing.T) {
 	// The bytes too
 	small := el("x", 1, 1, "a0", "")
 	m = sceneMerger{now: time.Now, maxBytes: int64(2*len(small) + 10)}
-	merged, err = m.merge(nil, [][]byte{sceneOf(small, el("y", 1, 1, "a1", ""))})
+	merged, _, err = m.merge(nil, [][]byte{sceneOf(small, el("y", 1, 1, "a1", ""))})
 	require.NoError(t, err)
-	merged, err = m.merge(merged, [][]byte{sceneOf(
+	merged, _, err = m.merge(merged, [][]byte{sceneOf(
 		el("x", 2, 1, "a0", `"points":[[0,0],[1,1],[2,2],[3,3]]`),
 		el("z", 1, 1, "a2", ""),
 	)})
 	require.NoError(t, err)
 	assert.Equal(t, []string{"x:1", "y:1"}, summary(t, merged), "nothing that grows the board past the cap")
-	merged, err = m.merge(merged, [][]byte{sceneOf(el("x", 3, 1, "a0", ""))})
+	merged, _, err = m.merge(merged, [][]byte{sceneOf(el("x", 3, 1, "a0", ""))})
 	require.NoError(t, err)
 	assert.Equal(t, []string{"x:3", "y:1"}, summary(t, merged), "a change that doesn't grow it applies")
 }

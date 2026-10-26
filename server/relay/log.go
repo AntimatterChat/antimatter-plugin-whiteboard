@@ -31,8 +31,8 @@ var ErrInvalidSnapshot = errors.New("the snapshot covers updates that don't exis
 var ErrCompactionOverdue = errors.New("the document must be compacted before more changes are saved")
 
 // MergeFunc merges updates into a snapshot (nil for an empty document) and returns the new
-// snapshot.
-type MergeFunc func(snapshot []byte, updates [][]byte) ([]byte, error)
+// snapshot, and whether it left content out because the document is full.
+type MergeFunc func(snapshot []byte, updates [][]byte) (merged []byte, full bool, err error)
 
 // LogOptions configures a Log.
 type LogOptions struct {
@@ -82,12 +82,14 @@ type Version struct {
 }
 
 type logMeta struct {
-	HasSnapshot  bool      `json:"has_snapshot,omitempty"`
-	SnapshotSeq  int64     `json:"snapshot_seq"`
-	SnapshotAt   int64     `json:"snapshot_at,omitempty"`
-	LastSeq      int64     `json:"last_seq"`
-	PendingBytes int64     `json:"pending_bytes"`
-	Versions     []Version `json:"versions,omitempty"`
+	HasSnapshot  bool  `json:"has_snapshot,omitempty"`
+	SnapshotSeq  int64 `json:"snapshot_seq"`
+	SnapshotAt   int64 `json:"snapshot_at,omitempty"`
+	LastSeq      int64 `json:"last_seq"`
+	PendingBytes int64 `json:"pending_bytes"`
+	// Full tells that the last merge left content out: the document is full.
+	Full     bool      `json:"full,omitempty"`
+	Versions []Version `json:"versions,omitempty"`
 }
 
 // Log keeps the updates of the documents. Writes to a document are serialized with the Locker;
@@ -157,6 +159,10 @@ type AppendResult struct {
 
 	// Compact tells the client to post a snapshot (only when the server doesn't merge).
 	Compact bool `json:"compact"`
+
+	// Full tells that the document is full: the server's last merge left content out (only when
+	// the server merges).
+	Full bool `json:"full,omitempty"`
 }
 
 // Append adds an update to the log of a document.
@@ -192,7 +198,7 @@ func (l *Log) Append(docID string, data []byte) (*AppendResult, error) {
 		return nil, err
 	}
 
-	result := &AppendResult{Seq: seq}
+	result := &AppendResult{Seq: seq, Full: meta.Full}
 	if !l.needsCompaction(meta) {
 		return result, nil
 	}
@@ -204,6 +210,7 @@ func (l *Log) Append(docID string, data []byte) (*AppendResult, error) {
 		// The update is stored: the next update retries the compaction
 		return result, errors.Wrap(err, "failed to compact the document")
 	}
+	result.Full = meta.Full
 	return result, nil
 }
 
@@ -245,10 +252,11 @@ func (l *Log) mergeLocked(docID string, meta *logMeta) error {
 		}
 	}
 
-	merged, err := l.opts.Merge(snapshot, updates)
+	merged, full, err := l.opts.Merge(snapshot, updates)
 	if err != nil {
 		return err
 	}
+	meta.Full = full
 	return l.replaceSnapshotLocked(docID, meta, merged, meta.LastSeq)
 }
 

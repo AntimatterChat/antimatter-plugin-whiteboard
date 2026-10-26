@@ -252,6 +252,22 @@ describe('RelayConnection', () => {
         expect(statuses[statuses.length - 1]).toBe('saved');
     });
 
+    test('tells whether the document is full with each saved update', async () => {
+        const relay = new FakeRelay();
+        const onFull = jest.fn();
+        const a = textClient(relay, 'a', {onFull});
+        await a.connection.start();
+
+        a.connection.send(encoder.encode('1'));
+        await advance(10);
+        expect(onFull).toHaveBeenLastCalledWith(false);
+
+        relay.full = true;
+        a.connection.send(encoder.encode('2'));
+        await advance(10);
+        expect(onFull).toHaveBeenLastCalledWith(true);
+    });
+
     test('relays the presence of the others', async () => {
         const relay = new FakeRelay();
         const seen: string[] = [];

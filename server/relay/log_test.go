@@ -130,8 +130,8 @@ func TestLogCompactionBySize(t *testing.T) {
 
 func TestLogServerMerge(t *testing.T) {
 	kv := relaytest.NewKV()
-	merge := func(snapshot []byte, updates [][]byte) ([]byte, error) {
-		return bytes.Join(append([][]byte{snapshot}, updates...), nil), nil
+	merge := func(snapshot []byte, updates [][]byte) ([]byte, bool, error) {
+		return bytes.Join(append([][]byte{snapshot}, updates...), nil), false, nil
 	}
 	log := NewLog(kv, NewLocalLocker(), LogOptions{CompactAfterUpdates: 2, Merge: merge})
 	assert.True(t, log.ServerMerges())
@@ -289,11 +289,11 @@ func TestAppendRefusedWhenCompactionOverdue(t *testing.T) {
 // again lets updates in.
 func TestAppendServerMergeRetriedWhenCompactionOverdue(t *testing.T) {
 	failing := true
-	merge := func(snapshot []byte, updates [][]byte) ([]byte, error) {
+	merge := func(snapshot []byte, updates [][]byte) ([]byte, bool, error) {
 		if failing {
-			return nil, fmt.Errorf("merge failed")
+			return nil, false, fmt.Errorf("merge failed")
 		}
-		return bytes.Join(append([][]byte{snapshot}, updates...), nil), nil
+		return bytes.Join(append([][]byte{snapshot}, updates...), nil), false, nil
 	}
 	log := NewLog(relaytest.NewKV(), NewLocalLocker(), LogOptions{CompactAfterUpdates: 1, MaxPendingUpdates: 3, Merge: merge})
 
@@ -313,4 +313,29 @@ func TestAppendServerMergeRetriedWhenCompactionOverdue(t *testing.T) {
 	state, err := log.Load(testDocID)
 	require.NoError(t, err)
 	assert.Equal(t, "aaab", string(state.Snapshot))
+}
+
+// A merge that leaves content out marks the document full, told with every update until a merge
+// keeps everything again.
+func TestLogServerMergeTellsWhenFull(t *testing.T) {
+	full := true
+	merge := func(snapshot []byte, updates [][]byte) ([]byte, bool, error) {
+		return snapshot, full, nil
+	}
+	log := NewLog(relaytest.NewKV(), NewLocalLocker(), LogOptions{CompactAfterUpdates: 2, Merge: merge})
+
+	result, err := log.Append(testDocID, []byte("a"))
+	require.NoError(t, err)
+	assert.False(t, result.Full)
+	result, err = log.Append(testDocID, []byte("b"))
+	require.NoError(t, err)
+	assert.True(t, result.Full, "the merge left content out")
+	result, err = log.Append(testDocID, []byte("c"))
+	require.NoError(t, err)
+	assert.True(t, result.Full, "still full until a merge keeps everything")
+
+	full = false
+	result, err = log.Append(testDocID, []byte("d"))
+	require.NoError(t, err)
+	assert.False(t, result.Full)
 }

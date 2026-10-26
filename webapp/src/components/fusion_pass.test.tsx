@@ -52,6 +52,7 @@ jest.mock('../board_session', () => ({
     default: class {
         status = 'saved';
         readOnly = false;
+        full = false;
         version = 0;
         connection = {pending: () => false};
         start() {

@@ -105,7 +105,10 @@ type sceneMerger struct {
 	maxBytes    int64
 }
 
-func (m sceneMerger) merge(snapshot []byte, updates [][]byte) ([]byte, error) {
+// merge merges the updates into the snapshot. The bool tells that it left content out to keep the
+// board within its caps.
+func (m sceneMerger) merge(snapshot []byte, updates [][]byte) ([]byte, bool, error) {
+	full := false
 	maxCount, maxBytes := m.maxElements, m.maxBytes
 	if maxCount == 0 {
 		maxCount = maxBoardElements
@@ -145,6 +148,7 @@ func (m sceneMerger) merge(snapshot []byte, updates [][]byte) ([]byte, error) {
 				growth -= int64(len(current.raw))
 			}
 			if capped && !fits(current, &e, growth, len(byID), size) {
+				full = true
 				continue
 			}
 			size += growth
@@ -161,7 +165,7 @@ func (m sceneMerger) merge(snapshot []byte, updates [][]byte) ([]byte, error) {
 	// A board merged before the caps keeps what it has; it only can't grow
 	if len(snapshot) > 0 {
 		if err := add(snapshot, false); err != nil {
-			return nil, errors.Wrap(err, "invalid snapshot")
+			return nil, false, errors.Wrap(err, "invalid snapshot")
 		}
 	}
 	for _, update := range updates {
@@ -192,9 +196,10 @@ func (m sceneMerger) merge(snapshot []byte, updates [][]byte) ([]byte, error) {
 		return elements[i].order < elements[j].order
 	})
 
-	merged := scene{Elements: make([]json.RawMessage, 0, len(elements))}
+	out := scene{Elements: make([]json.RawMessage, 0, len(elements))}
 	for _, e := range elements {
-		merged.Elements = append(merged.Elements, e.raw)
+		out.Elements = append(out.Elements, e.raw)
 	}
-	return json.Marshal(merged)
+	merged, err := json.Marshal(out)
+	return merged, full, err
 }

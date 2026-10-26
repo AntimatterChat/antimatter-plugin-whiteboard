@@ -225,7 +225,7 @@ func TestAPIPersonalDocument(t *testing.T) {
 }
 
 func TestAPIServerMerge(t *testing.T) {
-	ts := newTestService(LogOptions{Merge: func(s []byte, u [][]byte) ([]byte, error) { return s, nil }})
+	ts := newTestService(LogOptions{Merge: func(s []byte, u [][]byte) ([]byte, bool, error) { return s, false, nil }})
 	alice := model.NewId()
 	_, created := ts.do(t, alice, http.MethodPost, "/docs", map[string]any{})
 	w, _ := ts.do(t, alice, http.MethodPut, "/docs/"+created["id"].(string)+"/snapshot", map[string]any{"seq": 1, "data": b64("s")})

@@ -31,7 +31,7 @@ import {iconTip} from './fusion/tip';
 import LibraryManager from './library_manager';
 import Menu, {type MenuItem} from './menu';
 import ScopeChip, {FavoriteButton} from './scope';
-import {useSteadyStatus} from './steady_status';
+import StatusText from './status_text';
 import {useSharedLibraries} from './use_libraries';
 
 // Excalidraw is large: it's loaded when a board is opened.
@@ -124,55 +124,6 @@ function TitleInput({doc, editable}: {doc: Doc; editable: boolean}) {
             }}
         />
     );
-}
-
-function StatusText({session, editable}: {session: BoardSession; editable: boolean}) {
-    const steady = useSteadyStatus(session.status);
-    if (!editable) {
-        return (
-            <FormattedMessage
-                id='whiteboard.status.read_only'
-                defaultMessage='Read only'
-            />
-        );
-    }
-    switch (steady) {
-    case 'loading':
-        return (
-            <FormattedMessage
-                id='whiteboard.status.loading'
-                defaultMessage='Loading…'
-            />
-        );
-    case 'saving':
-        return (
-            <FormattedMessage
-                id='whiteboard.status.saving'
-                defaultMessage='Saving…'
-            />
-        );
-    case 'offline':
-        return (
-            <FormattedMessage
-                id='whiteboard.status.offline'
-                defaultMessage='Offline'
-            />
-        );
-    case 'error':
-        return (
-            <FormattedMessage
-                id='whiteboard.status.error'
-                defaultMessage='Not saved'
-            />
-        );
-    default:
-        return (
-            <FormattedMessage
-                id='whiteboard.status.saved'
-                defaultMessage='Saved'
-            />
-        );
-    }
 }
 
 // BoardView shows an open board: its title, its Excalidraw canvas and its actions.

@@ -24,6 +24,9 @@ export default class FakeRelay implements RelayAPI {
     failStatus = 0;
     // overdueAfter, when set, refuses updates (409) while this many wait for a snapshot.
     overdueAfter = 0;
+
+    // full is told with every saved update.
+    full = false;
     posts = 0;
     awareness: Array<{clientId: string; data: Uint8Array}> = [];
 
@@ -61,7 +64,7 @@ export default class FakeRelay implements RelayAPI {
                 client.handleUpdate({doc_id: docId, client_id: clientId, seq, data: toBase64(data)});
             }
         }
-        return {seq, compact: this.compactAfter > 0 && this.updates.length >= this.compactAfter};
+        return {seq, compact: this.compactAfter > 0 && this.updates.length >= this.compactAfter, ...(this.full ? {full: true} : {})};
     }
 
     async putSnapshot(docId: string, seq: number, data: Uint8Array) {

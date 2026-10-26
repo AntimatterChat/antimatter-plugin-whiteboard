@@ -39,6 +39,10 @@ export type ConnectionHandlers = {
 
     // onReadOnly is called when the server refuses an update because the user can't edit anymore.
     onReadOnly?(): void;
+
+    // onFull is told, with each saved update, whether the document is full (the server left content
+    // out of its last merge).
+    onFull?(full: boolean): void;
 };
 
 export type ConnectionOptions = {
@@ -225,6 +229,7 @@ export default class RelayConnection {
         if (this.stopped) {
             return;
         }
+        this.handlers.onFull?.(Boolean(result.full));
         this.tracker.mark(result.seq);
         this.checkGap();
         if (this.queue.length) {

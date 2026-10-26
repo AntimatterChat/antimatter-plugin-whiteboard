@@ -54,8 +54,8 @@ again a moment later. New boards are limited to bursts of 20, then one every fiv
 A board holds at most 50,000 elements and 20 MiB (deleted elements included, until they're
 dropped), and 100 MiB of images (500 at most). Past that, merges leave out new elements and the
 changes that make an element larger; other changes, and deletions, still apply, so a full board
-can be cleaned up. Clients that drew past the limit see what they drew until they open the board
-again. A board whose updates wait for a merge past 4,000 updates or 40 MiB (merges failing) takes
+can be cleaned up. The board's status then says it's full (the relay tells it with each update);
+clients that drew past the limit see what they drew until they open the board again. A board whose updates wait for a merge past 4,000 updates or 40 MiB (merges failing) takes
 no more until one works: the relay answers 409.
 
 The relay is shared with the notes plugin: `server/relay` and `webapp/src/relay` are copied in both

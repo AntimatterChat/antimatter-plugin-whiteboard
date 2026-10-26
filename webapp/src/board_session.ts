@@ -104,6 +104,10 @@ export default class BoardSession {
     readonly clientId = Math.random().toString(36).slice(2, 12);
     status: SyncStatus = 'loading';
     readOnly = false;
+
+    // full tells that the board is full: the server leaves out what's drawn past its caps (the status
+    // says so; deleting makes room again).
+    full = false;
     version = 0;
 
     // The board's elements, also before the canvas is there (and between canvases).
@@ -146,6 +150,12 @@ export default class BoardSession {
             onReadOnly: () => {
                 this.readOnly = true;
                 this.emit();
+            },
+            onFull: (full) => {
+                if (full !== this.full) {
+                    this.full = full;
+                    this.emit();
+                }
             },
         }, {batchDelay: 100});
     }

@@ -53,6 +53,9 @@ export type Version = {
 export type AppendResult = {
     seq: number;
     compact: boolean;
+
+    // full tells that the document is full: the server's last merge left content out.
+    full?: boolean;
 };
 
 export class RelayError extends Error {
