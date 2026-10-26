@@ -18,7 +18,8 @@ export type SyncStatus = 'loading' | 'saving' | 'saved' | 'offline' | 'error';
 
 // The websocket events of the relay, as received from the server.
 export type UpdateEvent = {doc_id: string; client_id: string; seq: number; data?: string};
-export type AwarenessEvent = {doc_id: string; client_id: string; data: string};
+// user_id is the user who sent the presence message, told by the relay: the data is the sender's say.
+export type AwarenessEvent = {doc_id: string; client_id: string; user_id?: string; data: string};
 
 export type ConnectionHandlers = {
 
@@ -33,7 +34,7 @@ export type ConnectionHandlers = {
     // clients compact.
     snapshot?(): Uint8Array;
 
-    applyAwareness?(clientId: string, data: Uint8Array): void;
+    applyAwareness?(clientId: string, data: Uint8Array, userId?: string): void;
     onStatus?(status: SyncStatus, error?: Error): void;
 
     // onReadOnly is called when the server refuses an update because the user can't edit anymore.
@@ -284,7 +285,7 @@ export default class RelayConnection {
         if (this.stopped || event.doc_id !== this.docId || event.client_id === this.clientId) {
             return;
         }
-        this.handlers.applyAwareness?.(event.client_id, fromBase64(event.data));
+        this.handlers.applyAwareness?.(event.client_id, fromBase64(event.data), event.user_id);
     }
 
     // sendAwareness sends the presence of the local user to the other clients. Callers throttle it.

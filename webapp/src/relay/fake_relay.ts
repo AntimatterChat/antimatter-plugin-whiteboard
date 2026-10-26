@@ -27,6 +27,9 @@ export default class FakeRelay implements RelayAPI {
     posts = 0;
     awareness: Array<{clientId: string; data: Uint8Array}> = [];
 
+    // users is the user of each client, which the relay tells in the presence events.
+    users = new Map<string, string>();
+
     connect(connection: Client) {
         this.clients.push(connection);
     }
@@ -74,7 +77,7 @@ export default class FakeRelay implements RelayAPI {
     async postAwareness(docId: string, clientId: string, data: Uint8Array) {
         this.awareness.push({clientId, data});
         for (const client of this.clients) {
-            client.handleAwareness({doc_id: docId, client_id: clientId, data: toBase64(data)});
+            client.handleAwareness({doc_id: docId, client_id: clientId, user_id: this.users.get(clientId), data: toBase64(data)});
         }
         return {};
     }

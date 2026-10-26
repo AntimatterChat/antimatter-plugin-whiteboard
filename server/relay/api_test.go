@@ -363,3 +363,26 @@ func TestAPICompactionOverdueAndRateLimits(t *testing.T) {
 	w, _ = ts.do(t, alice, http.MethodPut, "/docs/"+docID+"/snapshot", map[string]any{"seq": 3, "data": b64("uuu")})
 	assert.Equal(t, http.StatusOK, w.Code)
 }
+
+// The presence messages name a user in their data, which is the sender's say: the event carries the
+// ID of the user who sent it, for the clients to show that user.
+func TestAwarenessEventCarriesSenderUserID(t *testing.T) {
+	ts := newTestService(LogOptions{})
+	alice, mallory := model.NewId(), model.NewId()
+	channelID := model.NewId()
+	ts.access.set(alice, channelID, ReadWrite)
+	ts.access.set(mallory, channelID, ReadWrite)
+
+	w, created := ts.do(t, alice, http.MethodPost, "/docs", map[string]any{"channel_id": channelID})
+	require.Equal(t, http.StatusCreated, w.Code, w.Body.String())
+	docID := created["id"].(string)
+
+	forged := `{"user":{"userId":"` + alice + `","name":"Alice"}}`
+	w, _ = ts.do(t, mallory, http.MethodPost, "/docs/"+docID+"/awareness", map[string]any{"client_id": "c-9", "data": b64(forged)})
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	last := ts.publisher.Last()
+	assert.Equal(t, EventAwareness, last.Event)
+	assert.Equal(t, mallory, last.Payload["user_id"])
+	assert.Equal(t, "c-9", last.Payload["client_id"])
+	assert.Equal(t, b64(forged), last.Payload["data"])
+}

@@ -701,7 +701,7 @@ func (s *Service) handleAwareness(w http.ResponseWriter, r *http.Request) {
 		s.WriteError(w, err)
 		return
 	}
-	s.Hub.Awareness(doc, body.ClientID, body.Data)
+	s.Hub.Awareness(doc, body.ClientID, UserID(r), body.Data)
 	WriteJSON(w, map[string]string{"status": "OK"})
 }
 

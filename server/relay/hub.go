@@ -60,11 +60,14 @@ func (h *Hub) Update(doc *Doc, clientID string, seq int64, data []byte) {
 	h.publisher.PublishWebSocketEvent(EventUpdate, payload, audience(doc))
 }
 
-// Awareness relays the presence of an editor (cursor, selection, name...) to the others.
-func (h *Hub) Awareness(doc *Doc, clientID string, data []byte) {
+// Awareness relays the presence of an editor (cursor, selection, name...) to the others, with the
+// ID of the user who sent it: the data is the sender's say, clients show that user, not the one the
+// data names.
+func (h *Hub) Awareness(doc *Doc, clientID, userID string, data []byte) {
 	h.publisher.PublishWebSocketEvent(EventAwareness, map[string]any{
 		"doc_id":    doc.ID,
 		"client_id": clientID,
+		"user_id":   userID,
 		"data":      base64.StdEncoding.EncodeToString(data),
 	}, audience(doc))
 }

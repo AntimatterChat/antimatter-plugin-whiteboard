@@ -88,8 +88,11 @@ const versions = (elements: readonly SceneElement[]) => elements.map((e) => `${e
 const summary = (canvas: FakeCanvas) => versions(canvas.elements);
 const names = (session: BoardSession) => session.others().map((c) => c.username).sort();
 
-async function open(relay: FakeBoardAPI, name: string) {
-    const session = new BoardSession(relay, 'doc', {userId: name, name, color: '#f00'});
+// open opens the board as a user, who may say they're someone else.
+async function open(relay: FakeBoardAPI, name: string, claims = name) {
+    const session = new BoardSession(relay, 'doc', {userId: claims, name: claims, color: '#f00'});
+    session.nameOf = (userId) => userId;
+    relay.users.set(session.clientId, name);
     relay.connect(session.connection);
     await session.start();
     const canvas = new FakeCanvas();
@@ -199,11 +202,37 @@ describe('BoardSession', () => {
         const relay = new FakeBoardAPI();
         const alice = await open(relay, 'alice');
         const presence = {userId: 'abcdefghijklmnopqrstuvwxyz', name: 'mallory', color: 'url(https://example.com/t.png)', avatarUrl: 'https://example.com/t.png', selected: 'a'};
+        relay.users.set('mallory', 'mallory');
         await relay.postAwareness('doc', 'mallory', new TextEncoder().encode(JSON.stringify(presence)));
         const mallory = [...alice.canvas.collaborators.values()].find((c) => c.username === 'mallory');
         expect(mallory?.color.background).toMatch(/^#[0-9A-F]{6}$/i);
         expect(mallory?.avatarUrl).toBe('');
         expect(mallory?.selectedElementIds).toEqual({});
+    });
+
+    test('shows the user who sent a presence message, not the one it names', async () => {
+        const relay = new FakeBoardAPI();
+        const alice = await open(relay, 'alice');
+        await open(relay, 'mallory', 'ceo');
+        await settle();
+        expect(names(alice.session)).toEqual(['mallory']);
+        expect(alice.session.others().map((c) => c.id)).toEqual(['mallory']);
+
+        // Presence the relay doesn't vouch for isn't shown
+        const ceo = 'abcdefghijklmnopqrstuvwxyz';
+        await relay.postAwareness('doc', 'unknown', new TextEncoder().encode(JSON.stringify({userId: ceo, name: 'The CEO', avatarUrl: `/api/v4/users/${ceo}/image`})));
+        expect(names(alice.session)).toEqual(['mallory']);
+
+        // Nor someone else's picture
+        const eveId = 'evevevevevevevevevevevevev';
+        relay.users.set('eve', eveId);
+        await relay.postAwareness('doc', 'eve', new TextEncoder().encode(JSON.stringify({userId: ceo, name: 'The CEO', avatarUrl: `/api/v4/users/${ceo}/image`})));
+        const eve = alice.session.others().find((c) => c.socketId === 'eve');
+        expect(eve?.id).toBe(eveId);
+        expect(eve?.username).toBe(eveId);
+        expect(eve?.avatarUrl).toBe('');
+        await relay.postAwareness('doc', 'eve', new TextEncoder().encode(JSON.stringify({userId: eveId, avatarUrl: `/api/v4/users/${eveId}/image`})));
+        expect(alice.session.others().find((c) => c.socketId === 'eve')?.avatarUrl).toBe(`/api/v4/users/${eveId}/image`);
     });
 
     test('saves a thumbnail once the drawing stops', async () => {

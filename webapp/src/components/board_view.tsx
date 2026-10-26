@@ -4,7 +4,7 @@
 import type {ExcalidrawImperativeAPI} from '@excalidraw/excalidraw/types';
 import React, {Suspense, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore} from 'react';
 import {FormattedMessage, useIntl} from 'react-intl';
-import {useSelector} from 'react-redux';
+import {useSelector, useStore} from 'react-redux';
 
 import type {GlobalState} from '@mattermost/types/store';
 
@@ -12,7 +12,7 @@ import {Client4} from 'mattermost-redux/client';
 import {getChannel, getCurrentChannel} from 'mattermost-redux/selectors/entities/channels';
 import {getTeammateNameDisplaySetting, getTheme} from 'mattermost-redux/selectors/entities/preferences';
 import {getCurrentTeamId} from 'mattermost-redux/selectors/entities/teams';
-import {getCurrentUser} from 'mattermost-redux/selectors/entities/users';
+import {getCurrentUser, getUser} from 'mattermost-redux/selectors/entities/users';
 import {displayUsername} from 'mattermost-redux/utils/user_utils';
 
 import BoardSession, {type BoardUser} from '../board_session';
@@ -43,14 +43,26 @@ function mergeDoc(changes: Partial<Doc>) {
     return (doc: Doc | null) => (doc ? {...doc, ...changes} : doc);
 }
 
+// useNameOf returns a function naming users as the viewer names them, from what the store knows.
+function useNameOf() {
+    const store = useStore<GlobalState>();
+    return useCallback((userId: string) => {
+        const state = store.getState();
+        const user = getUser(state, userId);
+        return user ? displayUsername(user, getTeammateNameDisplaySetting(state)) : '';
+    }, [store]);
+}
+
 function useSession(docId: string, user: BoardUser) {
     const [session, setSession] = useState<BoardSession | null>(null);
     const [error, setError] = useState('');
     const userRef = useRef(user);
     userRef.current = user;
+    const nameOf = useNameOf();
 
     useEffect(() => {
         const s = new BoardSession(client, docId, userRef.current);
+        s.nameOf = nameOf;
         const removeListener = events.addDoc(s.connection);
         s.start().catch((err) => setError(err.message));
         setSession(s);
@@ -68,7 +80,7 @@ function useSession(docId: string, user: BoardUser) {
             removeListener();
             s.destroy();
         };
-    }, [docId]);
+    }, [docId, nameOf]);
 
     const subscribe = useCallback((listener: () => void) => (session ? session.subscribe(listener) : () => null), [session]);
     useSyncExternalStore(subscribe, () => session?.version ?? -1);

@@ -109,6 +109,10 @@ export default class BoardSession {
     // The board's elements, also before the canvas is there (and between canvases).
     elements: SceneElement[] = [];
 
+    // nameOf names a user, from their ID, as the viewer names them, for the pointers of the others: the
+    // names in the presence messages are the sender's say. The board view sets it.
+    nameOf: (userId: string) => string = () => '';
+
     private api: BoardAPI;
     private user: BoardUser;
     private canvas: Canvas | null = null;
@@ -134,7 +138,7 @@ export default class BoardSession {
         this.connection = new RelayConnection(api, docId, this.clientId, {
             applyRemote: (data) => this.applyRemote(decodeScene(data)),
             merge: mergeScenes,
-            applyAwareness: (clientId, data) => this.applyPresence(clientId, data),
+            applyAwareness: (clientId, data, userId) => this.applyPresence(clientId, data, userId),
             onStatus: (status) => {
                 this.status = status;
                 this.emit();
@@ -325,7 +329,12 @@ export default class BoardSession {
         this.connection.sendAwareness(encoder.encode(JSON.stringify(this.presence)), keepalive);
     }
 
-    private applyPresence(clientId: string, data: Uint8Array) {
+    // applyPresence shows a presence message as the user the relay says sent it: the user ID, name and
+    // picture in it are the sender's say.
+    private applyPresence(clientId: string, data: Uint8Array, userId?: string) {
+        if (!userId) {
+            return;
+        }
         let presence: Presence;
         try {
             presence = JSON.parse(decoder.decode(data));
@@ -341,10 +350,10 @@ export default class BoardSession {
             }
             const color = remoteColor(presence.color);
             this.collaborators.set(clientId, {
-                id: String(presence.userId),
+                id: userId,
                 socketId: clientId,
-                username: String(presence.name || ''),
-                avatarUrl: remoteAvatar(presence.userId, presence.avatarUrl),
+                username: this.nameOf(userId),
+                avatarUrl: remoteAvatar(userId, presence.avatarUrl),
                 color: {background: color, stroke: color},
                 pointer: presence.pointer,
                 button: presence.button,
