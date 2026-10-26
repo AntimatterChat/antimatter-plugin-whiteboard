@@ -304,3 +304,62 @@ func TestAddFileCapsBoardBytes(t *testing.T) {
 	assert.Empty(t, kv.Keys("fbytes_board1"))
 	require.NoError(t, store.AddFile("board1", image("f4", 100)))
 }
+
+// Anyone can post any type of post through the REST API: a card must link to a document of its
+// channel that its poster can share, and shows that document's own title.
+func TestMessageWillBePostedRejectsForgedCard(t *testing.T) {
+	alice, bob := model.NewId(), model.NewId()
+	p, _, channels, _ := newTestPlugin(t, alice)
+	create := func(body map[string]any) relay.Doc {
+		w := serveJSON(p, alice, http.MethodPost, "/api/v1/docs", body)
+		require.Equal(t, http.StatusCreated, w.Code, w.Body.String())
+		var doc relay.Doc
+		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &doc))
+		return doc
+	}
+	doc := create(map[string]any{"title": "Roadmap", "channel_id": channels.channel.Id})
+	personal := create(map[string]any{"title": "Mine"})
+
+	card := func(userID, channelID, docID string) *model.Post {
+		post := &model.Post{UserId: userID, ChannelId: channelID, Type: boardPostType, Message: "Shared"}
+		post.AddProp("doc_id", docID)
+		post.AddProp("title", "Q4 layoffs plan")
+		return post
+	}
+
+	posted, reason := p.MessageWillBePosted(nil, card(alice, channels.channel.Id, doc.ID))
+	require.NotNil(t, posted, reason)
+	assert.Equal(t, "Roadmap", posted.GetProp("title"), "the card shows the document's title, not the one posted")
+
+	for name, post := range map[string]*model.Post{
+		"unknown document":  card(alice, channels.channel.Id, model.NewId()),
+		"invalid id":        card(alice, channels.channel.Id, "../../x"),
+		"personal document": card(alice, channels.channel.Id, personal.ID),
+		"other channel":     card(alice, model.NewId(), doc.ID),
+		"not a member":      card(bob, channels.channel.Id, doc.ID),
+	} {
+		posted, reason = p.MessageWillBePosted(nil, post)
+		assert.Nil(t, posted, name)
+		assert.NotEmpty(t, reason, name)
+	}
+
+	// Other posts aren't touched
+	plain := &model.Post{UserId: bob, ChannelId: channels.channel.Id, Message: "hi"}
+	posted, _ = p.MessageWillBePosted(nil, plain)
+	assert.Equal(t, plain, posted)
+
+	// Edits keep the card tied to its document and its title, and don't make cards
+	old := card(alice, channels.channel.Id, doc.ID)
+	old.AddProp("title", "Roadmap")
+	edited := card(alice, channels.channel.Id, personal.ID)
+	edited.Type = ""
+	updated, reason := p.MessageWillBeUpdated(nil, edited, old)
+	require.NotNil(t, updated, reason)
+	assert.Equal(t, boardPostType, updated.Type)
+	assert.Equal(t, doc.ID, updated.GetProp("doc_id"))
+	assert.Equal(t, "Roadmap", updated.GetProp("title"))
+
+	updated, reason = p.MessageWillBeUpdated(nil, card(alice, channels.channel.Id, doc.ID), plain)
+	assert.Nil(t, updated)
+	assert.NotEmpty(t, reason)
+}
