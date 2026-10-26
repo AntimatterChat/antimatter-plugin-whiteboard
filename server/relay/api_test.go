@@ -11,6 +11,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/mattermost/mattermost/server/public/model"
@@ -317,4 +318,48 @@ func TestAPIChannelAccess(t *testing.T) {
 
 	w, _ = ts.do(t, eve, http.MethodGet, "/channels/"+channelID+"/access", nil)
 	assert.Equal(t, http.StatusForbidden, w.Code)
+}
+
+func TestAPICompactionOverdueAndRateLimits(t *testing.T) {
+	ts := newTestService(LogOptions{CompactAfterUpdates: 1, MaxPendingUpdates: 2})
+	now := time.Date(2026, 10, 1, 9, 0, 0, 0, time.UTC)
+	ts.Now = func() time.Time { return now }
+	ts.CreateRateLimit = RateLimit{PerSecond: 0.2, Burst: 2}
+	ts.SnapshotRateLimit = RateLimit{PerSecond: 1, Burst: 1}
+	alice := model.NewId()
+	channelID := model.NewId()
+	ts.access.set(alice, channelID, ReadWrite)
+
+	w, created := ts.do(t, alice, http.MethodPost, "/docs", map[string]any{"channel_id": channelID})
+	require.Equal(t, http.StatusCreated, w.Code, w.Body.String())
+	docID := created["id"].(string)
+	update := map[string]any{"client_id": "c-1", "data": b64("u")}
+
+	// Updates past the cap wait for a snapshot: 409, as for a stale snapshot
+	for range 2 {
+		w, _ = ts.do(t, alice, http.MethodPost, "/docs/"+docID+"/updates", update)
+		require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	}
+	w, body := ts.do(t, alice, http.MethodPost, "/docs/"+docID+"/updates", update)
+	assert.Equal(t, http.StatusConflict, w.Code)
+	assert.Equal(t, ErrCompactionOverdue.Error(), body["error"])
+
+	w, _ = ts.do(t, alice, http.MethodPut, "/docs/"+docID+"/snapshot", map[string]any{"seq": 2, "data": b64("uu")})
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	w, _ = ts.do(t, alice, http.MethodPost, "/docs/"+docID+"/updates", update)
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+
+	// Snapshots and new documents carry up to MaxSnapshotBytes: they're rate-limited too
+	w, _ = ts.do(t, alice, http.MethodPut, "/docs/"+docID+"/snapshot", map[string]any{"seq": 3, "data": b64("uuu")})
+	assert.Equal(t, http.StatusTooManyRequests, w.Code)
+	w, _ = ts.do(t, alice, http.MethodPost, "/docs", map[string]any{"channel_id": channelID})
+	require.Equal(t, http.StatusCreated, w.Code)
+	w, _ = ts.do(t, alice, http.MethodPost, "/docs", map[string]any{"channel_id": channelID})
+	assert.Equal(t, http.StatusTooManyRequests, w.Code)
+
+	now = now.Add(5 * time.Second)
+	w, _ = ts.do(t, alice, http.MethodPost, "/docs", map[string]any{"channel_id": channelID})
+	assert.Equal(t, http.StatusCreated, w.Code)
+	w, _ = ts.do(t, alice, http.MethodPut, "/docs/"+docID+"/snapshot", map[string]any{"seq": 3, "data": b64("uuu")})
+	assert.Equal(t, http.StatusOK, w.Code)
 }

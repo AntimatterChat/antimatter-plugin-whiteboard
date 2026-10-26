@@ -65,12 +65,24 @@ type Service struct {
 	UpdateRateLimit    RateLimit
 	AwarenessRateLimit RateLimit
 
+	// CreateRateLimit and SnapshotRateLimit bound the documents each user creates and the snapshots
+	// they post: both carry up to MaxSnapshotBytes.
+	CreateRateLimit   RateLimit
+	SnapshotRateLimit RateLimit
+
+	// UpdateBytesRateLimit bounds the bytes of the updates each user sends (PerSecond and Burst in
+	// bytes; a burst of at least MaxUpdateBytes lets any update through once the user is idle).
+	UpdateBytesRateLimit RateLimit
+
 	// Now returns the current time (time.Now if nil).
 	Now func() time.Time
 
-	limitersOnce     sync.Once
-	updateLimiter    *rateLimiter
-	awarenessLimiter *rateLimiter
+	limitersOnce       sync.Once
+	updateLimiter      *rateLimiter
+	awarenessLimiter   *rateLimiter
+	createLimiter      *rateLimiter
+	snapshotLimiter    *rateLimiter
+	updateBytesLimiter *rateLimiter
 }
 
 func (s *Service) now() time.Time {
@@ -125,7 +137,7 @@ func (s *Service) WriteError(w http.ResponseWriter, err error) {
 	switch {
 	case errors.As(err, &apiErr):
 		status, message = apiErr.Status, apiErr.Message
-	case errors.Is(err, ErrStaleSnapshot), errors.Is(err, ErrInvalidSnapshot):
+	case errors.Is(err, ErrStaleSnapshot), errors.Is(err, ErrInvalidSnapshot), errors.Is(err, ErrCompactionOverdue):
 		status, message = http.StatusConflict, err.Error()
 	case errors.Is(err, ErrTooManyDocs):
 		status, message = http.StatusBadRequest, err.Error()
@@ -304,6 +316,9 @@ func (s *Service) handleChannelAccess(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Service) handleCreate(w http.ResponseWriter, r *http.Request) {
+	if s.rateLimited(w, r, s.limiter(&s.createLimiter), "new documents") {
+		return
+	}
 	var body struct {
 		Title     string `json:"title"`
 		ChannelID string `json:"channel_id"`
@@ -579,6 +594,9 @@ func (s *Service) handleAppend(w http.ResponseWriter, r *http.Request) {
 		s.WriteError(w, NewError(http.StatusRequestEntityTooLarge, "update too large"))
 		return
 	}
+	if s.rateLimitedN(w, r, s.limiter(&s.updateBytesLimiter), len(body.Data), "changes") {
+		return
+	}
 	if s.ValidateUpdate != nil {
 		if err := s.ValidateUpdate(body.Data); err != nil {
 			s.WriteError(w, NewError(http.StatusBadRequest, "invalid update: "+err.Error()))
@@ -625,6 +643,9 @@ func (s *Service) touch(doc *Doc, userID string) {
 func (s *Service) handleSnapshot(w http.ResponseWriter, r *http.Request) {
 	if s.Log.ServerMerges() {
 		s.WriteError(w, NewError(http.StatusMethodNotAllowed, "the server compacts this document itself"))
+		return
+	}
+	if s.rateLimited(w, r, s.limiter(&s.snapshotLimiter), "snapshots") {
 		return
 	}
 

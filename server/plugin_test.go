@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -274,4 +275,32 @@ func TestShareRefusedInArchivedChannel(t *testing.T) {
 	w = serveJSON(p, alice, http.MethodPost, "/api/v1/docs/"+doc.ID+"/share", map[string]any{})
 	assert.Equal(t, http.StatusForbidden, w.Code, w.Body.String())
 	api.AssertNotCalled(t, "CreatePost", mock.Anything)
+}
+
+// The images of a board are capped in total size, not only in number; images refused or sent
+// again don't count.
+func TestAddFileCapsBoardBytes(t *testing.T) {
+	kv := relaytest.NewKV()
+	store := &boardStore{kv: kv, maxFileBytes: 100}
+	image := func(id string, size int) *BoardFile {
+		prefix := "data:image/png;base64,"
+		return &BoardFile{ID: id, MimeType: "image/png", DataURL: prefix + strings.Repeat("A", size-len(prefix))}
+	}
+
+	require.NoError(t, store.AddFile("board1", image("f1", 60)))
+	require.NoError(t, store.AddFile("board1", image("f1", 60)), "the same image again")
+	err := store.AddFile("board1", image("f2", 60))
+	var apiErr *relay.Error
+	require.ErrorAs(t, err, &apiErr)
+	assert.Equal(t, http.StatusRequestEntityTooLarge, apiErr.Status)
+	require.NoError(t, store.AddFile("board1", image("f3", 40)))
+	file, err := store.GetFile("board1", "f2")
+	require.NoError(t, err)
+	assert.Nil(t, file)
+
+	// Each board has its own budget, and deleting a board frees its own
+	require.NoError(t, store.AddFile("board2", image("f1", 100)))
+	require.NoError(t, store.DeleteBoard("board1"))
+	assert.Empty(t, kv.Keys("fbytes_board1"))
+	require.NoError(t, store.AddFile("board1", image("f4", 100)))
 }

@@ -22,6 +22,8 @@ export default class FakeRelay implements RelayAPI {
     dropEvents = false;
     failNext = 0;
     failStatus = 0;
+    // overdueAfter, when set, refuses updates (409) while this many wait for a snapshot.
+    overdueAfter = 0;
     posts = 0;
     awareness: Array<{clientId: string; data: Uint8Array}> = [];
 
@@ -45,6 +47,9 @@ export default class FakeRelay implements RelayAPI {
         if (this.failNext > 0) {
             this.failNext--;
             throw new RelayError('failed', this.failStatus || 503, this.failStatus === 429 ? 2000 : 0);
+        }
+        if (this.overdueAfter > 0 && this.updates.length >= this.overdueAfter) {
+            throw new RelayError('the document must be compacted before more changes are saved', 409);
         }
         const seq = ++this.lastSeq;
         this.updates.push({seq, data});

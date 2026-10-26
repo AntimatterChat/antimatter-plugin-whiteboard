@@ -112,18 +112,57 @@ func TestMergeScenesSkipsInvalidUpdates(t *testing.T) {
 	assert.Error(t, err)
 }
 
-// A board can gather more elements than one scene may hold: its snapshot still merges.
-func TestMergeScenesBeyondTheSceneLimit(t *testing.T) {
+// A board merged before the caps can hold more elements than they allow: its snapshot still
+// merges, and its elements still change, but it gets no new ones.
+func TestMergeScenesBeyondTheBoardLimit(t *testing.T) {
 	m := sceneMerger{now: time.Now}
-	elements := make([]string, maxElements)
+	elements := make([]string, maxBoardElements+1)
 	for i := range elements {
 		elements[i] = el(fmt.Sprintf("e%d", i), 1, 1, "", "")
 	}
-	snapshot, err := m.merge(nil, [][]byte{sceneOf(elements...), sceneOf(el("extra", 1, 1, "", ""))})
-	require.NoError(t, err)
+	snapshot := sceneOf(elements...)
 	assert.Error(t, validateScene(snapshot))
 
-	merged, err := m.merge(snapshot, [][]byte{sceneOf(el("more", 1, 1, "", ""))})
+	merged, err := m.merge(snapshot, [][]byte{sceneOf(el("more", 1, 1, "", ""), el("e0", 2, 1, "", ""))})
 	require.NoError(t, err)
-	assert.Len(t, summary(t, merged), maxElements+2)
+	got := summary(t, merged)
+	assert.Len(t, got, maxBoardElements+1)
+	assert.Contains(t, got, "e0:2")
+	assert.NotContains(t, got, "more:1")
+}
+
+// The merged board is capped: past maxElements or maxBytes, the merge leaves out new elements and
+// the changes that make an element larger, and still applies those that don't (deletions too).
+func TestMergeRefusesSnapshotBeyondLimits(t *testing.T) {
+	m := sceneMerger{now: time.Now, maxElements: 3, maxBytes: 1 << 20}
+	merged, err := m.merge(nil, [][]byte{
+		sceneOf(el("a", 1, 1, "a0", ""), el("b", 1, 1, "a1", "")),
+		sceneOf(el("c", 1, 1, "a2", ""), el("d", 1, 1, "a3", "")),
+	})
+	require.NoError(t, err)
+	assert.Equal(t, []string{"a:1", "b:1", "c:1"}, summary(t, merged))
+
+	// Full: a deletion and a change of the same size apply, a new element doesn't
+	merged, err = m.merge(merged, [][]byte{sceneOf(
+		el("a", 2, 1, "a0", fmt.Sprintf(`"isDeleted":true,"updated":%d`, time.Now().UnixMilli())),
+		el("b", 2, 1, "a1", ""),
+		el("e", 1, 1, "a4", ""),
+	)})
+	require.NoError(t, err)
+	assert.Equal(t, []string{"a:2", "b:2", "c:1"}, summary(t, merged))
+
+	// The bytes too
+	small := el("x", 1, 1, "a0", "")
+	m = sceneMerger{now: time.Now, maxBytes: int64(2*len(small) + 10)}
+	merged, err = m.merge(nil, [][]byte{sceneOf(small, el("y", 1, 1, "a1", ""))})
+	require.NoError(t, err)
+	merged, err = m.merge(merged, [][]byte{sceneOf(
+		el("x", 2, 1, "a0", `"points":[[0,0],[1,1],[2,2],[3,3]]`),
+		el("z", 1, 1, "a2", ""),
+	)})
+	require.NoError(t, err)
+	assert.Equal(t, []string{"x:1", "y:1"}, summary(t, merged), "nothing that grows the board past the cap")
+	merged, err = m.merge(merged, [][]byte{sceneOf(el("x", 3, 1, "a0", ""))})
+	require.NoError(t, err)
+	assert.Equal(t, []string{"x:3", "y:1"}, summary(t, merged), "a change that doesn't grow it applies")
 }

@@ -14,10 +14,20 @@ import (
 
 const (
 	// maxElements caps the elements of a scene sent by a client (an update or the initial
-	// content), deleted ones included. The merged snapshot isn't capped: it can hold more than one
-	// scene's elements, and refusing to merge it would stop the compaction of the board for good.
+	// content), deleted ones included.
 	maxElements = 50000
 	maxIDLength = 64
+
+	// maxBoardElements and maxBoardBytes cap the merged board (deleted elements included, until
+	// they expire). Refusing to merge would stop the compaction of the board for good, so the merge
+	// leaves out what would take the board past them instead: new elements, and changes that make
+	// an element larger. Changes that keep an element's size or shrink it always apply, and so does
+	// deleting an element (its tombstone may be up to tombstoneSlack bytes larger), so a full board
+	// can be cleaned up. Without the caps, updates of new elements grow the snapshot without bound,
+	// and every merge parses all of it.
+	maxBoardElements = 50000
+	maxBoardBytes    = 20 * 1024 * 1024
+	tombstoneSlack   = 256
 
 	// Deleted elements are kept this long, so that the clients that were offline learn about the
 	// deletion instead of bringing the elements back.
@@ -89,12 +99,38 @@ func wins(incoming, current elementHead) bool {
 // sceneMerger merges scene updates into a board's snapshot.
 type sceneMerger struct {
 	now func() time.Time
+
+	// maxElements and maxBytes cap the merged board (maxBoardElements and maxBoardBytes if 0).
+	maxElements int
+	maxBytes    int64
 }
 
 func (m sceneMerger) merge(snapshot []byte, updates [][]byte) ([]byte, error) {
+	maxCount, maxBytes := m.maxElements, m.maxBytes
+	if maxCount == 0 {
+		maxCount = maxBoardElements
+	}
+	if maxBytes == 0 {
+		maxBytes = maxBoardBytes
+	}
+
 	byID := map[string]*element{}
 	order := 0
-	add := func(data []byte) error {
+	var size int64
+	// fits returns whether the incoming element, replacing current (nil for a new one), keeps the
+	// board within the caps
+	fits := func(current, incoming *element, growth int64, count int, total int64) bool {
+		switch {
+		case growth <= 0:
+			return true
+		case current == nil:
+			return count < maxCount && total+growth <= maxBytes
+		case incoming.head.IsDeleted && !current.head.IsDeleted && growth <= tombstoneSlack:
+			return true
+		}
+		return total+growth <= maxBytes
+	}
+	add := func(data []byte, capped bool) error {
 		elements, err := parseScene(data, 0)
 		if err != nil {
 			return err
@@ -104,6 +140,14 @@ func (m sceneMerger) merge(snapshot []byte, updates [][]byte) ([]byte, error) {
 			if ok && !wins(e.head, current.head) {
 				continue
 			}
+			growth := int64(len(e.raw))
+			if ok {
+				growth -= int64(len(current.raw))
+			}
+			if capped && !fits(current, &e, growth, len(byID), size) {
+				continue
+			}
+			size += growth
 			e.order = order
 			if ok {
 				e.order = current.order
@@ -114,14 +158,15 @@ func (m sceneMerger) merge(snapshot []byte, updates [][]byte) ([]byte, error) {
 		return nil
 	}
 
+	// A board merged before the caps keeps what it has; it only can't grow
 	if len(snapshot) > 0 {
-		if err := add(snapshot); err != nil {
+		if err := add(snapshot, false); err != nil {
 			return nil, errors.Wrap(err, "invalid snapshot")
 		}
 	}
 	for _, update := range updates {
 		// The updates were validated when they were posted: skip any that isn't valid anymore
-		_ = add(update)
+		_ = add(update, true)
 	}
 
 	expired := m.now().Add(-tombstoneTTL).UnixMilli()

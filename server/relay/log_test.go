@@ -250,3 +250,67 @@ func TestLogConcurrentAppends(t *testing.T) {
 	assert.Len(t, state.Updates, 50)
 	assert.EqualValues(t, 50, state.LastSeq)
 }
+
+// A client that never posts the snapshots it's asked for can't grow the log without bound: past
+// MaxPendingUpdates or MaxPendingBytes, updates are refused until the log is compacted.
+func TestAppendRefusedWhenCompactionOverdue(t *testing.T) {
+	kv := relaytest.NewKV()
+	log := NewLog(kv, NewLocalLocker(), LogOptions{CompactAfterUpdates: 2, MaxPendingUpdates: 4, MaxPendingBytes: 1 << 20})
+
+	for i := 1; i <= 4; i++ {
+		result, err := log.Append(testDocID, fmt.Appendf(nil, "u%d", i))
+		require.NoError(t, err)
+		assert.Equal(t, i >= 2, result.Compact)
+	}
+	result, err := log.Append(testDocID, []byte("u5"))
+	assert.Nil(t, result)
+	assert.ErrorIs(t, err, ErrCompactionOverdue)
+	assert.Len(t, kv.Keys("upd_"), 4, "the refused update isn't stored")
+
+	// A snapshot lets updates in again
+	require.NoError(t, log.Compact(testDocID, []byte("u1u2u3u4"), 4))
+	result, err = log.Append(testDocID, []byte("u5"))
+	require.NoError(t, err)
+	assert.EqualValues(t, 5, result.Seq)
+
+	// The bytes waiting for a snapshot are capped too
+	bySize := NewLog(relaytest.NewKV(), NewLocalLocker(), LogOptions{CompactAfterBytes: 10, MaxPendingBytes: 25})
+	for range 2 {
+		_, err = bySize.Append(testDocID, bytes.Repeat([]byte("x"), 10))
+		require.NoError(t, err)
+	}
+	_, err = bySize.Append(testDocID, bytes.Repeat([]byte("x"), 10))
+	assert.ErrorIs(t, err, ErrCompactionOverdue)
+	_, err = bySize.Append(testDocID, bytes.Repeat([]byte("x"), 5))
+	require.NoError(t, err, "an update that fits under the cap still goes in")
+}
+
+// When the server merges and its merges fail, the log is capped the same way; a merge that works
+// again lets updates in.
+func TestAppendServerMergeRetriedWhenCompactionOverdue(t *testing.T) {
+	failing := true
+	merge := func(snapshot []byte, updates [][]byte) ([]byte, error) {
+		if failing {
+			return nil, fmt.Errorf("merge failed")
+		}
+		return bytes.Join(append([][]byte{snapshot}, updates...), nil), nil
+	}
+	log := NewLog(relaytest.NewKV(), NewLocalLocker(), LogOptions{CompactAfterUpdates: 1, MaxPendingUpdates: 3, Merge: merge})
+
+	for range 3 {
+		result, err := log.Append(testDocID, []byte("a"))
+		require.NotNil(t, result, "the update is stored even though the merge failed")
+		require.Error(t, err)
+	}
+	result, err := log.Append(testDocID, []byte("a"))
+	assert.Nil(t, result)
+	assert.ErrorIs(t, err, ErrCompactionOverdue)
+
+	failing = false
+	result, err = log.Append(testDocID, []byte("b"))
+	require.NoError(t, err)
+	assert.EqualValues(t, 4, result.Seq)
+	state, err := log.Load(testDocID)
+	require.NoError(t, err)
+	assert.Equal(t, "aaab", string(state.Snapshot))
+}

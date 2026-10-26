@@ -18,10 +18,14 @@ const (
 	fileKeyPrefix      = "file_"
 	fileIndexKeyPrefix = "files_"
 	thumbnailKeyPrefix = "thumb_"
+	fileBytesKeyPrefix = "fbytes_"
 
-	// maxFilesPerBoard caps the images of a board.
-	maxFilesPerBoard = 500
-	indexAttempts    = 10
+	// maxFilesPerBoard and maxBoardFileBytes cap the images of a board: their number, and their
+	// total size (each one is up to maxFileBytes). Boards from before the size was counted start
+	// from zero.
+	maxFilesPerBoard  = 500
+	maxBoardFileBytes = 100 * 1024 * 1024
+	indexAttempts     = 10
 )
 
 // BoardFile is an image of a board, as Excalidraw keeps them (BinaryFileData).
@@ -36,6 +40,9 @@ type BoardFile struct {
 // the boards.
 type boardStore struct {
 	kv relay.KV
+
+	// maxFileBytes caps the total size of the images of a board (maxBoardFileBytes if 0).
+	maxFileBytes int64
 }
 
 func fileKey(boardID, fileID string) string {
@@ -61,15 +68,31 @@ func (s *boardStore) GetFile(boardID, fileID string) (*BoardFile, error) {
 // AddFile adds an image to a board. Images never change (their ID is a hash of their content, and
 // they are served as immutable): adding an existing one keeps the stored image.
 func (s *boardStore) AddFile(boardID string, file *BoardFile) error {
-	if err := s.updateIndex(boardID, func(ids []string) ([]string, error) {
+	// A new image's size is counted before it's listed, and given back if it isn't listed after all
+	size := int64(len(file.DataURL))
+	reserved, listed := false, false
+	err := s.updateIndex(boardID, func(ids []string) ([]string, error) {
 		if slices.Contains(ids, file.ID) {
+			listed = true
 			return nil, nil
 		}
 		if len(ids) >= maxFilesPerBoard {
 			return nil, relay.NewError(http.StatusBadRequest, "too many images on this board")
 		}
+		if !reserved {
+			if err := s.addFileBytes(boardID, size); err != nil {
+				return nil, err
+			}
+			reserved = true
+		}
 		return append(ids, file.ID), nil
-	}); err != nil {
+	})
+	if reserved && (err != nil || listed) {
+		if releaseErr := s.addFileBytes(boardID, -size); releaseErr != nil && err == nil {
+			err = releaseErr
+		}
+	}
+	if err != nil {
 		return err
 	}
 
@@ -83,6 +106,43 @@ func (s *boardStore) AddFile(boardID string, file *BoardFile) error {
 		return errors.Wrap(appErr, "failed to save the file")
 	}
 	return nil
+}
+
+// addFileBytes adds to the total size of the images of a board (removes, when negative), refusing
+// to take it past maxBoardFileBytes.
+func (s *boardStore) addFileBytes(boardID string, delta int64) error {
+	key := fileBytesKeyPrefix + boardID
+	for range indexAttempts {
+		old, appErr := s.kv.KVGet(key)
+		if appErr != nil {
+			return errors.Wrap(appErr, "failed to get the size of the board's images")
+		}
+		var total int64
+		if old != nil {
+			if err := json.Unmarshal(old, &total); err != nil {
+				return errors.Wrap(err, "failed to decode the size of the board's images")
+			}
+		}
+		limit := s.maxFileBytes
+		if limit == 0 {
+			limit = maxBoardFileBytes
+		}
+		if delta > 0 && total+delta > limit {
+			return relay.NewError(http.StatusRequestEntityTooLarge, "this board holds too many images")
+		}
+		data, err := json.Marshal(max(total+delta, 0))
+		if err != nil {
+			return errors.Wrap(err, "failed to encode the size of the board's images")
+		}
+		ok, appErr := s.kv.KVSetWithOptions(key, data, model.PluginKVSetOptions{Atomic: true, OldValue: old})
+		if appErr != nil {
+			return errors.Wrap(appErr, "failed to save the size of the board's images")
+		}
+		if ok {
+			return nil
+		}
+	}
+	return errors.New("failed to update the size of the board's images: too many concurrent changes")
 }
 
 // updateIndex changes the list of the images of a board with compare-and-set. update returns the
@@ -153,7 +213,7 @@ func (s *boardStore) DeleteBoard(boardID string) error {
 			return errors.Wrap(appErr, "failed to delete a file")
 		}
 	}
-	for _, k := range []string{key, thumbnailKeyPrefix + boardID} {
+	for _, k := range []string{key, thumbnailKeyPrefix + boardID, fileBytesKeyPrefix + boardID} {
 		if appErr := s.kv.KVDelete(k); appErr != nil {
 			return errors.Wrap(appErr, "failed to delete the board's data")
 		}

@@ -18,12 +18,17 @@ import (
 const (
 	// A freehand stroke is an element with all its points; an import can be a whole scene
 	maxUpdateBytes    = 4 * 1024 * 1024
-	maxSnapshotBytes  = 32 * 1024 * 1024
+	maxSnapshotBytes  = maxBoardBytes
 	maxAwarenessBytes = 4 * 1024
 
 	// The server merges the updates into the snapshot after this many updates or bytes
 	compactAfterUpdates = 200
 	compactAfterBytes   = 1024 * 1024
+
+	// Past this many updates or bytes waiting for a merge (merges that keep failing), updates are
+	// refused (409) until a merge works again
+	maxPendingUpdates = 20 * compactAfterUpdates
+	maxPendingBytes   = 2 * maxBoardBytes
 
 	// Past snapshots kept as versions of a board
 	keepVersions    = 20
@@ -38,6 +43,14 @@ var (
 	// 60 ms: these leave room for a few open boards per user
 	updateRateLimit    = relay.RateLimit{PerSecond: 20, Burst: 60}
 	awarenessRateLimit = relay.RateLimit{PerSecond: 40, Burst: 80}
+
+	// The bytes of the updates: 2 MiB a second on average, in bursts of 16 MiB (an imported scene
+	// is one update of up to maxUpdateBytes). Every merge parses the whole board: without it, a
+	// client sending 4 MiB updates 20 times a second makes the server merge on every update.
+	updateBytesRateLimit = relay.RateLimit{PerSecond: 2 * 1024 * 1024, Burst: 16 * 1024 * 1024}
+
+	// New boards carry up to maxSnapshotBytes each: a few in a row, then one every five seconds
+	createRateLimit = relay.RateLimit{PerSecond: 0.2, Burst: 20}
 )
 
 // Plugin implements the interface expected by the Antimatter server to communicate between the
@@ -78,21 +91,25 @@ func (p *Plugin) OnActivate() error {
 		Log: relay.NewLog(p.API, locker, relay.LogOptions{
 			CompactAfterUpdates: compactAfterUpdates,
 			CompactAfterBytes:   compactAfterBytes,
+			MaxPendingUpdates:   maxPendingUpdates,
+			MaxPendingBytes:     maxPendingBytes,
 			KeepVersions:        keepVersions,
 			VersionInterval:     versionInterval,
 			Merge:               sceneMerger{now: time.Now}.merge,
 		}),
-		Hub:                relay.NewHub(p.API),
-		Access:             p.access,
-		Logger:             p.API,
-		DefaultTitle:       "Untitled board",
-		OnTitled:           p.shareTitled,
-		MaxUpdateBytes:     maxUpdateBytes,
-		MaxSnapshotBytes:   maxSnapshotBytes,
-		MaxAwarenessBytes:  maxAwarenessBytes,
-		ValidateUpdate:     validateScene,
-		UpdateRateLimit:    updateRateLimit,
-		AwarenessRateLimit: awarenessRateLimit,
+		Hub:                  relay.NewHub(p.API),
+		Access:               p.access,
+		Logger:               p.API,
+		DefaultTitle:         "Untitled board",
+		OnTitled:             p.shareTitled,
+		MaxUpdateBytes:       maxUpdateBytes,
+		MaxSnapshotBytes:     maxSnapshotBytes,
+		MaxAwarenessBytes:    maxAwarenessBytes,
+		ValidateUpdate:       validateScene,
+		UpdateRateLimit:      updateRateLimit,
+		AwarenessRateLimit:   awarenessRateLimit,
+		UpdateBytesRateLimit: updateBytesRateLimit,
+		CreateRateLimit:      createRateLimit,
 		OnDelete: func(doc *relay.Doc) error {
 			return p.boards.DeleteBoard(doc.ID)
 		},

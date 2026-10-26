@@ -5,6 +5,7 @@ package relay
 
 import (
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -80,5 +81,35 @@ func TestAPIRateLimits(t *testing.T) {
 	w, _ = ts.do(t, alice, http.MethodPost, "/docs/"+docID+"/updates", update)
 	assert.Equal(t, http.StatusOK, w.Code)
 	w, _ = ts.do(t, alice, http.MethodPost, "/docs/"+docID+"/awareness", update)
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+// The bytes of the updates are limited too: a client sending large updates as fast as it may
+// is slowed down, small ones keep going.
+func TestAPIUpdateBytesRateLimit(t *testing.T) {
+	ts := newTestService(LogOptions{})
+	now := time.Date(2026, 10, 1, 9, 0, 0, 0, time.UTC)
+	ts.Now = func() time.Time { return now }
+	ts.UpdateBytesRateLimit = RateLimit{PerSecond: 1000, Burst: 1024}
+	alice := model.NewId()
+	channelID := model.NewId()
+	ts.access.set(alice, channelID, ReadWrite)
+
+	w, created := ts.do(t, alice, http.MethodPost, "/docs", map[string]any{"channel_id": channelID})
+	require.Equal(t, http.StatusCreated, w.Code, w.Body.String())
+	docID := created["id"].(string)
+	large := map[string]any{"client_id": "c-1", "data": b64(strings.Repeat("x", 1000))}
+	small := map[string]any{"client_id": "c-1", "data": b64("x")}
+
+	w, _ = ts.do(t, alice, http.MethodPost, "/docs/"+docID+"/updates", large)
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	w, _ = ts.do(t, alice, http.MethodPost, "/docs/"+docID+"/updates", large)
+	assert.Equal(t, http.StatusTooManyRequests, w.Code)
+	assert.Equal(t, "1", w.Header().Get("Retry-After"))
+	w, _ = ts.do(t, alice, http.MethodPost, "/docs/"+docID+"/updates", small)
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	now = now.Add(time.Second)
+	w, _ = ts.do(t, alice, http.MethodPost, "/docs/"+docID+"/updates", large)
 	assert.Equal(t, http.StatusOK, w.Code)
 }

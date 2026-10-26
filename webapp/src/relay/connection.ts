@@ -202,6 +202,13 @@ export default class RelayConnection {
 
             // Keep the update, in order, and retry later
             this.queue.unshift(data);
+            if (err instanceof RelayError && err.status === 409) {
+                // The server takes no more changes until the document is compacted: post a snapshot
+                // (when this client compacts), then send again
+                this.retryDelay = Math.min(this.maxRetryDelay, this.retryDelay ? this.retryDelay * 2 : 1000);
+                this.compact().finally(() => this.scheduleFlush(this.retryDelay));
+                return;
+            }
             if (err instanceof RelayError && err.status === 429) {
                 // Sending too fast: the server says when to send again, the client isn't offline
                 this.scheduleFlush(err.retryAfter || 1000);

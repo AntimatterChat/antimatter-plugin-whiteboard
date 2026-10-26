@@ -47,8 +47,16 @@ snapshot every 200 updates or MiB (deleted elements are kept a day, then dropped
 updates and the pointers to the members of the board's channel (or to its owner) with websocket
 events. Images are stored beside the board (8 MiB each at most), and a PNG thumbnail is saved when
 the drawing stops, for the cards of shared boards. Each user can send twenty updates and forty
-pointer moves a second on average (in bursts of 60 and 80), per server; beyond that the relay
-answers 429 and clients send the update again a moment later.
+pointer moves a second on average (in bursts of 60 and 80), and 2 MiB of updates a second (in
+bursts of 16 MiB), per server; beyond that the relay answers 429 and clients send the update
+again a moment later. New boards are limited to bursts of 20, then one every five seconds.
+
+A board holds at most 50,000 elements and 20 MiB (deleted elements included, until they're
+dropped), and 100 MiB of images (500 at most). Past that, merges leave out new elements and the
+changes that make an element larger; other changes, and deletions, still apply, so a full board
+can be cleaned up. Clients that drew past the limit see what they drew until they open the board
+again. A board whose updates wait for a merge past 4,000 updates or 40 MiB (merges failing) takes
+no more until one works: the relay answers 409.
 
 The relay is shared with the notes plugin: `server/relay` and `webapp/src/relay` are copied in both
 repositories and must be kept in sync.

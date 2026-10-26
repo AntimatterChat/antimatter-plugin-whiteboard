@@ -224,6 +224,34 @@ describe('RelayConnection', () => {
         expect(b.connection.lastSeq).toBe(4);
     });
 
+    test('compacts, then sends again, when the server waits for a snapshot', async () => {
+        const relay = new FakeRelay();
+        relay.overdueAfter = 2;
+        const statuses: string[] = [];
+        const a = textClient(relay, 'a', {onStatus: (s) => statuses.push(s)});
+        const b = textClient(relay, 'b');
+        await a.connection.start();
+        await b.connection.start();
+
+        a.connection.send(encoder.encode('1'));
+        await advance(10);
+        a.connection.send(encoder.encode('2'));
+        await advance(10);
+        a.connection.send(encoder.encode('3'));
+        await advance(10);
+
+        // Refused: the client posts the snapshot it was never asked for
+        expect(relay.snapshotSeq).toBe(2);
+        expect(decoder.decode(relay.snapshot as Uint8Array)).toBe('snapshot');
+        expect(b.received).toEqual(['1', '2']);
+        expect(statuses).not.toContain('error');
+
+        await advance(1000);
+        expect(b.received).toEqual(['1', '2', '3']);
+        expect(relay.updates.map((u) => decoder.decode(u.data))).toEqual(['3']);
+        expect(statuses[statuses.length - 1]).toBe('saved');
+    });
+
     test('relays the presence of the others', async () => {
         const relay = new FakeRelay();
         const seen: string[] = [];

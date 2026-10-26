@@ -26,6 +26,10 @@ var ErrStaleSnapshot = errors.New("the snapshot is older than the current one")
 // ErrInvalidSnapshot is returned for a snapshot of updates the log doesn't have yet.
 var ErrInvalidSnapshot = errors.New("the snapshot covers updates that don't exist")
 
+// ErrCompactionOverdue is returned for an update while the log holds more pending updates than
+// LogOptions allow: the document has to be compacted first (by a client posting a snapshot).
+var ErrCompactionOverdue = errors.New("the document must be compacted before more changes are saved")
+
 // MergeFunc merges updates into a snapshot (nil for an empty document) and returns the new
 // snapshot.
 type MergeFunc func(snapshot []byte, updates [][]byte) ([]byte, error)
@@ -39,6 +43,13 @@ type LogOptions struct {
 
 	// Merge, if set, lets the server compact the log itself. Otherwise clients post snapshots.
 	Merge MergeFunc
+
+	// MaxPendingUpdates and MaxPendingBytes, if set, cap the updates after the snapshot: past them,
+	// Append refuses updates with ErrCompactionOverdue until the log is compacted. They keep a client
+	// that never posts snapshots (or merges that keep failing) from growing the log, and every load
+	// of the document, without bound.
+	MaxPendingUpdates int
+	MaxPendingBytes   int64
 
 	// KeepVersions is how many past snapshots are kept as versions of the document, at least
 	// VersionInterval apart. Zero keeps none.
@@ -160,6 +171,15 @@ func (l *Log) Append(docID string, data []byte) (*AppendResult, error) {
 	if err != nil {
 		return nil, err
 	}
+	if l.compactionOverdue(meta, len(data)) {
+		if l.opts.Merge == nil {
+			return nil, ErrCompactionOverdue
+		}
+		// Merges failed so far: one more try before refusing the update
+		if err = l.mergeLocked(docID, meta); err != nil || l.compactionOverdue(meta, len(data)) {
+			return nil, ErrCompactionOverdue
+		}
+	}
 
 	seq := meta.LastSeq + 1
 	// The update is written before the metadata, so readers never see a missing update
@@ -185,6 +205,14 @@ func (l *Log) Append(docID string, data []byte) (*AppendResult, error) {
 		return result, errors.Wrap(err, "failed to compact the document")
 	}
 	return result, nil
+}
+
+// compactionOverdue returns whether adding an update of n bytes would take the pending updates
+// past MaxPendingUpdates or MaxPendingBytes.
+func (l *Log) compactionOverdue(meta *logMeta, n int) bool {
+	pending := meta.LastSeq - meta.SnapshotSeq
+	return (l.opts.MaxPendingUpdates > 0 && pending+1 > int64(l.opts.MaxPendingUpdates)) ||
+		(l.opts.MaxPendingBytes > 0 && meta.PendingBytes+int64(n) > l.opts.MaxPendingBytes)
 }
 
 func (l *Log) needsCompaction(meta *logMeta) bool {
