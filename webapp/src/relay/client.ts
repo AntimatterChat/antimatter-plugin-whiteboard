@@ -123,6 +123,12 @@ export class RelayClient {
         });
     }
 
+    // channelAccess tells whether the user can add and edit the documents of a channel: not in an archived
+    // channel, nor while they can't post in it (timed out, or a read-only channel).
+    channelAccess(channelId: string) {
+        return this.request<{can_edit: boolean}>('GET', `/channels/${encodeURIComponent(channelId)}/access`);
+    }
+
     getDoc(docId: string) {
         return this.request<Doc>('GET', `/docs/${docId}`);
     }

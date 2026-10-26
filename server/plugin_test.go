@@ -49,9 +49,12 @@ func (f *fakeChannels) HasPermissionToChannel(userID, channelID string, permissi
 func TestChannelAccess(t *testing.T) {
 	alice, bob := model.NewId(), model.NewId()
 	channels := &fakeChannels{
-		channel:     &model.Channel{Id: model.NewId(), Type: model.ChannelTypeOpen},
-		members:     map[string]bool{alice: true},
-		permissions: map[string]bool{alice + "/" + model.PermissionManagePublicChannelProperties.Id: true},
+		channel: &model.Channel{Id: model.NewId(), Type: model.ChannelTypeOpen},
+		members: map[string]bool{alice: true},
+		permissions: map[string]bool{
+			alice + "/" + model.PermissionManagePublicChannelProperties.Id: true,
+			alice + "/" + model.PermissionCreatePost.Id:                    true,
+		},
 	}
 	access := channelAccess{api: channels}
 
@@ -84,8 +87,9 @@ func TestEscapeMarkdown(t *testing.T) {
 // newTestPlugin returns a plugin with in-memory storage, alice being a member of channels.channel.
 func newTestPlugin(t *testing.T, alice string) (*Plugin, *plugintest.API, *fakeChannels, *relaytest.KV) {
 	channels := &fakeChannels{
-		channel: &model.Channel{Id: model.NewId(), Type: model.ChannelTypeOpen},
-		members: map[string]bool{alice: true},
+		channel:     &model.Channel{Id: model.NewId(), Type: model.ChannelTypeOpen},
+		members:     map[string]bool{alice: true},
+		permissions: map[string]bool{alice + "/" + model.PermissionCreatePost.Id: true},
 	}
 	api := &plugintest.API{}
 	t.Cleanup(func() { api.AssertExpectations(t) })
@@ -204,4 +208,52 @@ func TestFilesAndThumbnail(t *testing.T) {
 	w = serve(p, alice, http.MethodDelete, base, nil)
 	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
 	assert.Empty(t, kv.Keys(""))
+}
+
+// A member who can't post in the channel (timed out, denied create_post by an override, a read-only
+// channel) only views its boards: no new board, no rename, no live edit, no image, no deletion.
+func TestChannelAccessReadOnlyWithoutCreatePost(t *testing.T) {
+	alice, bob := model.NewId(), model.NewId()
+	p, _, channels, _ := newTestPlugin(t, alice)
+	channels.members[bob] = true
+	channels.permissions[bob+"/"+model.PermissionCreatePost.Id] = true
+
+	// Bob makes a board while he can post
+	w := serveJSON(p, bob, http.MethodPost, "/api/v1/docs", map[string]any{"channel_id": channels.channel.Id})
+	require.Equal(t, http.StatusCreated, w.Code, w.Body.String())
+	var doc relay.Doc
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &doc))
+	base := "/api/v1/docs/" + doc.ID
+
+	// Then he's timed out
+	delete(channels.permissions, bob+"/"+model.PermissionCreatePost.Id)
+
+	permission, err := channelAccess{api: channels}.ChannelPermission(bob, channels.channel.Id)
+	require.NoError(t, err)
+	assert.Equal(t, relay.ReadOnly, permission)
+
+	update := map[string]any{"client_id": "c1", "data": []byte(`{"elements":[{"id":"a","version":1}]}`)}
+	image := map[string]any{"mimeType": "image/png", "dataURL": "data:image/png;base64,iVBORw0KGgo=", "created": 1}
+	assert.Equal(t, http.StatusForbidden, serveJSON(p, bob, http.MethodPost, base+"/updates", update).Code)
+	assert.Equal(t, http.StatusForbidden, serveJSON(p, bob, http.MethodPatch, base, map[string]any{"title": "Mine now"}).Code)
+	assert.Equal(t, http.StatusForbidden, serveJSON(p, bob, http.MethodPost, "/api/v1/docs", map[string]any{"channel_id": channels.channel.Id}).Code)
+	assert.Equal(t, http.StatusForbidden, serveJSON(p, bob, http.MethodPut, base+"/files/f1", image).Code)
+	assert.Equal(t, http.StatusForbidden, serve(p, bob, http.MethodPut, base+"/thumbnail", append([]byte("\x89PNG\r\n\x1a\n"), 1)).Code)
+	assert.Equal(t, http.StatusForbidden, serve(p, bob, http.MethodDelete, base, nil).Code)
+
+	// He still views it, and is told he can't edit it
+	w = serve(p, bob, http.MethodGet, base, nil)
+	require.Equal(t, http.StatusOK, w.Code)
+	var got relay.DocResponse
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &got))
+	assert.False(t, got.CanEdit)
+	assert.False(t, got.CanDelete)
+	assert.Equal(t, http.StatusOK, serve(p, bob, http.MethodGet, base+"/state", nil).Code)
+
+	w = serve(p, bob, http.MethodGet, "/api/v1/channels/"+channels.channel.Id+"/access", nil)
+	require.Equal(t, http.StatusOK, w.Code)
+	assert.JSONEq(t, `{"can_edit": false}`, w.Body.String())
+
+	// Alice, who can post, still edits it
+	assert.Equal(t, http.StatusOK, serveJSON(p, alice, http.MethodPost, base+"/updates", update).Code)
 }

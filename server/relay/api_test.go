@@ -299,3 +299,22 @@ func TestAPIListAsksAdminOnce(t *testing.T) {
 	}
 	assert.Equal(t, 1, ts.access.manageCalls)
 }
+
+func TestAPIChannelAccess(t *testing.T) {
+	ts := newTestService(LogOptions{})
+	alice, bob, eve := model.NewId(), model.NewId(), model.NewId()
+	channelID := model.NewId()
+	ts.access.set(alice, channelID, ReadWrite)
+	ts.access.set(bob, channelID, ReadOnly)
+
+	w, body := ts.do(t, alice, http.MethodGet, "/channels/"+channelID+"/access", nil)
+	require.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, true, body["can_edit"])
+
+	w, body = ts.do(t, bob, http.MethodGet, "/channels/"+channelID+"/access", nil)
+	require.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, false, body["can_edit"])
+
+	w, _ = ts.do(t, eve, http.MethodGet, "/channels/"+channelID+"/access", nil)
+	assert.Equal(t, http.StatusForbidden, w.Code)
+}

@@ -322,7 +322,7 @@ export default function BoardView({docId}: {docId: string}) {
     }
 
     // A channel's board is shared in the channel once it has a title; one still untitled can be shared by hand.
-    if (doc.channel_id && !doc.shared_post_id && !channel?.delete_at) {
+    if (doc.channel_id && !doc.shared_post_id && !channel?.delete_at && doc.can_edit) {
         items.push({
             icon: 'forward',
             label: intl.formatMessage({id: 'whiteboard.menu.share', defaultMessage: 'Share in the channel'}),

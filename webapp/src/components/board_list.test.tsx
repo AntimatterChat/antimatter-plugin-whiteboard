@@ -22,6 +22,7 @@ jest.mock('mattermost-redux/client', () => ({Client4: {getProfilePictureUrl: () 
 
 jest.mock('../client', () => ({
     client: {
+        channelAccess: jest.fn(),
         listDocs: jest.fn(),
         listFavorites: jest.fn(),
         createDoc: jest.fn(),
@@ -83,6 +84,7 @@ beforeEach(() => {
     setOpenDoc(null);
     setListView('channel');
     mocked.listDocs.mockResolvedValue([]);
+    mocked.channelAccess.mockResolvedValue({can_edit: true});
     mocked.listFavorites.mockResolvedValue([]);
     mocked.createDoc.mockResolvedValue({...board, id: 'b2'});
 });
@@ -128,6 +130,16 @@ describe.each(['fusion', 'classic'] as const)('under the %s UI', (ui) => {
     test('an archived channel has its header row, without a +', async () => {
         renderList({...townSquare, delete_at: 5});
         expect(await screen.findByText('No boards here yet')).toBeInTheDocument();
+        expect(head()).toHaveTextContent('Shared with Town Square');
+        expect(headButtons()).toHaveLength(0);
+        expect(screen.queryByRole('button', {name: /New/})).toBeNull();
+    });
+
+    test("a member who can't post in the channel views its boards only: no + and a line saying so", async () => {
+        mocked.channelAccess.mockResolvedValue({can_edit: false});
+        renderList();
+        expect(await screen.findByText('You can view the boards added here, but not add or draw on them.')).toBeInTheDocument();
+        expect(mocked.channelAccess).toHaveBeenCalledWith('c1');
         expect(head()).toHaveTextContent('Shared with Town Square');
         expect(headButtons()).toHaveLength(0);
         expect(screen.queryByRole('button', {name: /New/})).toBeNull();

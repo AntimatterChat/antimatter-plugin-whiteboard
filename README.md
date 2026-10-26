@@ -10,7 +10,8 @@ several people at once, with everyone's pointer visible.
   without the app bar) opens a panel listing the boards shared with the current channel and your
   personal boards. Boards open in the panel (widen it with its expand button) or in full screen.
 - **Channel and personal boards.** Every member of a channel can draw on its boards; they become
-  read-only when the channel is archived. Personal boards are only visible to you. Boards are
+  read-only when the channel is archived, and for members who can't post in the channel (timed
+  out, denied by the channel's permissions, or a read-only channel). Personal boards are only visible to you. Boards are
   deleted by their creator or by the channel admins.
 - **Excalidraw.** The whole Excalidraw editor (shapes, arrows, freehand, text, images, libraries,
   undo...), in the light or dark theme of the user. Under the Fusion web UI, the board is framed by
@@ -55,7 +56,7 @@ repositories and must be kept in sync.
 Excalidraw is large: the webapp loads it, in separate chunks served next to the plugin bundle,
 only when a board is opened.
 
-REST API, under `/plugins/com.antimatterchat.whiteboard/api/v1`: the relay's `/docs` routes (see
+REST API, under `/plugins/com.antimatterchat.whiteboard/api/v1`: the relay's `/docs` and `/channels/{id}/access` routes (see
 the notes plugin's README), plus:
 
 | Method and path | |

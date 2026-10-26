@@ -19,7 +19,8 @@ type channelAPI interface {
 }
 
 // channelAccess gives the members of a channel access to its boards: they edit them, or only read
-// them once the channel is archived.
+// them once the channel is archived, or while they can't post in it (a timeout, a channel override
+// denying create_post, a read-only channel): editing a board is posting in the channel.
 type channelAccess struct {
 	api channelAPI
 }
@@ -37,6 +38,10 @@ func (a channelAccess) ChannelPermission(userID, channelID string) (relay.Permis
 		return relay.NoAccess, appErr
 	}
 	if channel.DeleteAt != 0 {
+		return relay.ReadOnly, nil
+	}
+	// The server's check applies the channel's overrides and the member's timeout
+	if !a.api.HasPermissionToChannel(userID, channelID, model.PermissionCreatePost) {
 		return relay.ReadOnly, nil
 	}
 	return relay.ReadWrite, nil

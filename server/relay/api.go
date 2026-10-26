@@ -157,6 +157,7 @@ func (s *Service) RegisterRoutes(router *mux.Router) {
 	router.HandleFunc("/docs", s.handleList).Methods(http.MethodGet)
 	router.HandleFunc("/docs", s.handleCreate).Methods(http.MethodPost)
 	router.HandleFunc("/favorites", s.handleFavorites).Methods(http.MethodGet)
+	router.HandleFunc("/channels/{channel_id:[a-z0-9]{26}}/access", s.handleChannelAccess).Methods(http.MethodGet)
 
 	doc := router.PathPrefix("/docs/{doc_id:[a-z0-9]{26}}").Subrouter()
 	doc.HandleFunc("", s.handleGet).Methods(http.MethodGet)
@@ -285,6 +286,21 @@ func (s *Service) handleList(w http.ResponseWriter, r *http.Request) {
 		response = append(response, respond(doc, permission))
 	}
 	WriteJSON(w, response)
+}
+
+// handleChannelAccess tells whether the user can add and edit the documents of a channel, for the
+// clients to show them read-only (an archived channel, a timeout, no right to post) before an edit is
+// refused.
+func (s *Service) handleChannelAccess(w http.ResponseWriter, r *http.Request) {
+	permission, err := s.Access.ChannelPermission(UserID(r), mux.Vars(r)["channel_id"])
+	if err == nil && permission == NoAccess {
+		err = NewError(http.StatusForbidden, "you don't have access to this channel")
+	}
+	if err != nil {
+		s.WriteError(w, err)
+		return
+	}
+	WriteJSON(w, map[string]bool{"can_edit": permission == ReadWrite})
 }
 
 func (s *Service) handleCreate(w http.ResponseWriter, r *http.Request) {

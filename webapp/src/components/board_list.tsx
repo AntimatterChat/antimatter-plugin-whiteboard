@@ -173,6 +173,21 @@ export default function BoardList({channel}: {channel?: Channel}) {
     }, [loadChannel]);
     useEffect(loadPersonal, [loadPersonal]);
 
+    // Whether the user can add and edit the channel's boards: they're view-only to those who can't post in it.
+    // Until the server says, the + shows, as for most members.
+    const [canEditChannel, setCanEditChannel] = useState(true);
+    useEffect(() => {
+        setCanEditChannel(true);
+        if (!channelId) {
+            return undefined;
+        }
+        let current = true;
+        client.channelAccess(channelId).then((access) => current && setCanEditChannel(access.can_edit), () => {});
+        return () => {
+            current = false;
+        };
+    }, [channelId, channel?.delete_at]);
+
     const favoriteIds = useMemo(() => new Set((favoriteDocs || []).map((f) => f.id)), [favoriteDocs]);
 
     // The favorites, from any channel, load when shown
@@ -206,11 +221,17 @@ export default function BoardList({channel}: {channel?: Channel}) {
         }
     };
 
-    const archived = Boolean(channel?.delete_at);
+    const readOnly = Boolean(channel?.delete_at) || !canEditChannel;
     const conversation = channel?.type === 'D' || channel?.type === 'G';
     const channelName = conversation ? intl.formatMessage({id: 'whiteboard.list.conversation', defaultMessage: 'this conversation'}) : channel?.display_name;
 
     const shown = channel || view === 'favorites' ? view : 'mine';
+
+    // Who can draw on the channel's boards, under "No boards here yet"
+    let channelEmptyText = conversation ? intl.formatMessage({id: 'whiteboard.list.conversation_empty_text', defaultMessage: 'Every member of the conversation can draw on the boards added here.', description: 'Under "No boards here yet" in the Whiteboard panel, in a direct or group message: who can draw on its boards.'}) : intl.formatMessage({id: 'whiteboard.list.channel_empty_text', defaultMessage: 'Every member of the channel can draw on the boards added here.', description: 'Under "No boards here yet" in the Whiteboard panel: who can draw on a channel\'s boards.'});
+    if (readOnly) {
+        channelEmptyText = intl.formatMessage({id: 'whiteboard.list.read_only_empty_text', defaultMessage: 'You can view the boards added here, but not add or draw on them.', description: 'Under "No boards here yet" in the Whiteboard panel, for a person who can\'t post in the channel (archived, read-only, or timed out).'});
+    }
     const newInChannel = conversation ? intl.formatMessage({id: 'whiteboard.list.new_conversation', defaultMessage: 'New board in this conversation', description: 'The + of the Whiteboard panel\'s "Shared with this conversation" row, in a direct or group message.'}) : intl.formatMessage({id: 'whiteboard.list.new_channel', defaultMessage: 'New board in this channel'});
 
     return (
@@ -285,9 +306,9 @@ export default function BoardList({channel}: {channel?: Channel}) {
                     empty={{
                         icon: 'draw',
                         title: intl.formatMessage({id: 'whiteboard.list.channel_empty_title', defaultMessage: 'No boards here yet', description: 'Title of the Whiteboard panel when the current channel or conversation has no boards.'}),
-                        text: conversation ? intl.formatMessage({id: 'whiteboard.list.conversation_empty_text', defaultMessage: 'Every member of the conversation can draw on the boards added here.', description: 'Under "No boards here yet" in the Whiteboard panel, in a direct or group message: who can draw on its boards.'}) : intl.formatMessage({id: 'whiteboard.list.channel_empty_text', defaultMessage: 'Every member of the channel can draw on the boards added here.', description: 'Under "No boards here yet" in the Whiteboard panel: who can draw on a channel\'s boards.'}),
+                        text: channelEmptyText,
                     }}
-                    create={archived ? null : {label: newInChannel, onClick: () => create(false)}}
+                    create={readOnly ? null : {label: newInChannel, onClick: () => create(false)}}
                 />
             )}
             {shown === 'mine' && (

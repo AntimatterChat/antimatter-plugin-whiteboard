@@ -60,6 +60,7 @@
   "whiteboard.list.personal": "Personal boards",
   "whiteboard.list.personal_empty": "Only you can see your personal boards.",
   "whiteboard.list.personal_empty_title": "No personal boards yet",
+  "whiteboard.list.read_only_empty_text": "You can view the boards added here, but not add or draw on them.",
   "whiteboard.list.starred_empty_title": "Nothing starred yet",
   "whiteboard.list.view_channel": "This channel",
   "whiteboard.list.view_conversation": "This conversation",

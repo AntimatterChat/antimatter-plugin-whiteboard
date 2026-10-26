@@ -26,6 +26,7 @@ jest.mock('mattermost-redux/client', () => ({Client4: {getProfilePictureUrl: () 
 
 jest.mock('../client', () => ({
     client: {
+        channelAccess: jest.fn(),
         listDocs: jest.fn(),
         listFavorites: jest.fn(),
         createDoc: jest.fn(),
@@ -143,6 +144,7 @@ beforeEach(() => {
     setOpenDoc(null);
     setListView('channel');
     mocked.listDocs.mockResolvedValue([]);
+    mocked.channelAccess.mockResolvedValue({can_edit: true});
     mocked.listFavorites.mockResolvedValue([]);
     mocked.getDoc.mockResolvedValue(board);
     mocked.deleteDoc.mockResolvedValue({} as never);
