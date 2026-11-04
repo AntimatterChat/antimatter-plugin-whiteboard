@@ -1,0 +1,27 @@
+# Checks every push to main and every pull request: go vet, golangci-lint and the Go tests, the
+# web app's lint, type check and tests when the app has one, and a vulnerability scan (govulncheck,
+# npm audit). The checks live in the organisation's shared workflow, which release.yml also runs
+# before it signs a bundle:
+# https://github.com/AntimatterChat/.github/blob/main/.github/workflows/app-ci.yml
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  # A newer push to a pull request replaces its run; every push to main gets its own.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  ci:
+    name: CI
+    permissions:
+      contents: read
+    uses: AntimatterChat/.github/.github/workflows/app-ci.yml@main
