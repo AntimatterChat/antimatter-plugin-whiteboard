@@ -178,11 +178,10 @@ export default function BoardList({channel}: {channel?: Channel}) {
     const [canEditChannel, setCanEditChannel] = useState(true);
     useEffect(() => {
         setCanEditChannel(true);
-        if (!channelId) {
-            return undefined;
-        }
         let current = true;
-        client.channelAccess(channelId).then((access) => current && setCanEditChannel(access.can_edit), () => {});
+        if (channelId) {
+            client.channelAccess(channelId).then((access) => current && setCanEditChannel(access.can_edit), () => null);
+        }
         return () => {
             current = false;
         };
