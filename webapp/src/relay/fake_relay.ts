@@ -22,6 +22,7 @@ export default class FakeRelay implements RelayAPI {
     dropEvents = false;
     failNext = 0;
     failStatus = 0;
+
     // overdueAfter, when set, refuses updates (409) while this many wait for a snapshot.
     overdueAfter = 0;
 

@@ -18,6 +18,7 @@ export type SyncStatus = 'loading' | 'saving' | 'saved' | 'offline' | 'error';
 
 // The websocket events of the relay, as received from the server.
 export type UpdateEvent = {doc_id: string; client_id: string; seq: number; data?: string};
+
 // user_id is the user who sent the presence message, told by the relay: the data is the sender's say.
 export type AwarenessEvent = {doc_id: string; client_id: string; user_id?: string; data: string};
 
